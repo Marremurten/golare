@@ -88,4 +88,79 @@ export const MESSAGES = {
   /** No active game in the group */
   LOBBY_NO_GAME:
     "Det finns inget aktivt spel här, bre. Kör /nyttspel för att starta ett! 🎯",
+
+  // -------------------------------------------------------------------------
+  // Role reveal DMs (Phase 2, Plan 02)
+  // -------------------------------------------------------------------------
+
+  /** Role reveal DM for Äkta players */
+  ROLE_REVEAL_AKTA:
+    "Yo bre, lyssna noga...\n\n" +
+    "Du är <b>ÄKTA</b>. Du tillhör <b>Ligan</b> -- vi är familjen. 🤝\n\n" +
+    "Din uppgift: Genomför stötar framgångsrikt. Välj rätt folk till teamen, " +
+    "och var jävligt noga med vem du litar på.\n\n" +
+    "Vinst: <b>3 lyckade stötar</b> och Ligan vinner.\n\n" +
+    "Men shuno... det finns Golare bland oss. Dom jobbar för Aina " +
+    "och vill sabotera allt vi byggt. Lita inte på någon blint. 👀\n\n" +
+    "Håll ögonen öppna. Familjen räknar med dig. 🔥",
+
+  /** Role reveal DM for Golare players -- receives list of other Golare */
+  ROLE_REVEAL_GOLARE: (otherGolare: string) => {
+    const golareInfo = otherGolare
+      ? `Dina bröder i skiten: ${otherGolare}. Ni vet om varandra -- använd det. 🤫`
+      : "Du är ensam, bre. Ingen annan Golare. Allt hänger på dig. 💀";
+
+    return (
+      "Psst... kom hit, bre.\n\n" +
+      "Du är <b>GOLARE</b>. Du jobbar för <b>Aina</b>. 🐀\n\n" +
+      "Din uppgift: Sabotera Ligans stötar inifrån. Smyg dig in i teamen " +
+      "och välj [Gola] när det gäller. Men var försiktig -- om dom fattar " +
+      "att du är en råtta så är du rökt.\n\n" +
+      `${golareInfo}\n\n` +
+      "Vinst: <b>3 saboterade stötar</b> och Aina vinner.\n\n" +
+      "Spela ditt spel smart. Ljug, manipulera, peka finger åt andra. " +
+      "Gör vad du måste. Bara bli inte avslöjad. 🎭"
+    );
+  },
+
+  /** Role reveal DM for Högra Hand (Guzmans Högra Hand) */
+  ROLE_REVEAL_HOGRA_HAND:
+    "Yo... kom närmare. Det här stannar mellan oss. 🤫\n\n" +
+    "Du är <b>Guzmans Högra Hand</b>. Du tillhör <b>Ligan</b>, " +
+    "men du har en specialposition som ingen annan vet om.\n\n" +
+    "Din förmåga: <b>Spaning</b> -- en gång under hela spelet kan du " +
+    "kolla en spelares riktiga roll. Använd det klokt, bre. " +
+    "Det kan ändra allt. 🔍\n\n" +
+    "Ditt mål: Hjälp Ligan vinna stötar och guida gruppen rätt -- " +
+    "men gör det subtilt. Om Golare listar ut att du är Högra Hand " +
+    "kan dom stjäla vinsten i slutet.\n\n" +
+    "Du har Guzmans förtroende. Svek det inte. 👊\n\n" +
+    "Vinst: <b>3 lyckade stötar</b> och Ligan vinner. " +
+    "Men håll dig gömd -- du är Golares största mål. 🎯",
+
+  // -------------------------------------------------------------------------
+  // Game start & cancellation (Phase 2, Plan 02)
+  // -------------------------------------------------------------------------
+
+  /** Dramatic Guzman monologue posted to group when game starts */
+  GAME_START_MONOLOGUE:
+    "<b>Ligan... lyssna upp.</b> 🎬\n\n" +
+    "Nånting luktar fisk i byn, bre. Jag har hört rykten... " +
+    "det finns <b>Golare</b> bland oss. Råttor som jobbar för Aina. 🐀\n\n" +
+    "Men vi kör ändå. Vi har stötar att genomföra. " +
+    "Varje runda väljer en <b>Capo</b> sitt team -- " +
+    "och gruppen röstar om dom litar på valet.\n\n" +
+    "Teamet går sen in och gör jobbet. " +
+    "Eller... saboterar det inifrån. 👀\n\n" +
+    "<b>3 lyckade stötar</b> och Ligan vinner. " +
+    "<b>3 saboterade</b> och Aina tar hem det.\n\n" +
+    "Kolla era DMs -- ni har fått era roller. " +
+    "Lita inte på någon. <b>Spelet börjar nu.</b> 🔥",
+
+  /** Group announcement when admin cancels the game */
+  GAME_CANCELLED: (adminName: string) =>
+    `${adminName} drog i nödbromsen. Spelet är avbrutet, bre. 🚫`,
+
+  /** answerCallbackQuery confirmation for admin on cancel */
+  GAME_CANCEL_CONFIRM: "Spelet avbrutet. 🚫",
 } as const;
