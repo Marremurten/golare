@@ -1,6 +1,6 @@
 /**
  * Game loop handler: mission posting, Capo nomination, team voting,
- * execution (Sakra/Gola), and result reveal.
+ * execution (Sakra/Gola), result reveal, Sista Chansen, and final reveal.
  *
  * Scheduler handler functions (wired into bot.ts):
  *   - handleMissionPost (09:00)
@@ -19,6 +19,7 @@
  *   - vn:{roundId} -- vote NEJ
  *   - ms:{roundId} -- mission Sakra
  *   - mg:{roundId} -- mission Gola
+ *   - sc:{gameId}:{candidateIndex} -- Sista Chansen guess
  */
 
 import { Composer, InlineKeyboard } from "grammy";
@@ -39,8 +40,11 @@ import {
   deleteVotesForRound,
   castMissionAction,
   getMissionActionsForRound,
+  createSistaChansen,
+  getSistaChansen,
+  updateSistaChansen,
 } from "../db/client.js";
-import type { Game, GamePlayer, Player, Round } from "../db/types.js";
+import type { Game, GamePlayer, Player, Round, SistaChansen, GuessingSide } from "../db/types.js";
 import {
   nextRoundPhase,
   getCapoIndex,
@@ -48,6 +52,7 @@ import {
   computeMissionResult,
   checkWinCondition,
   getTeamSize,
+  getSistaChansenSide,
 } from "../lib/game-state.js";
 import { MESSAGES } from "../lib/messages.js";
 import { getMessageQueue } from "../queue/message-queue.js";
@@ -60,9 +65,36 @@ import type { ScheduleHandlers } from "../lib/scheduler.js";
 /** Player with joined player info (name, dm_chat_id) */
 type OrderedPlayerWithInfo = GamePlayer & { players: Player };
 
+/** Tracks DM message IDs for Sista Chansen guessers so buttons can be removed */
+type GuesserDMInfo = { playerId: string; messageId: number; chatId: number };
+
+// ---------------------------------------------------------------------------
+// In-memory state for Sista Chansen
+// ---------------------------------------------------------------------------
+
+/** DM message IDs per game, used to remove buttons from all guessers after first guess */
+const sistaChansensMessages = new Map<string, GuesserDMInfo[]>();
+
+/** Timeout references per game, cleared when a guess arrives */
+const sistaChansensTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+
+/** Candidate lists per game (ordered), used to resolve candidateIndex from callback */
+const sistaChangensCandidates = new Map<string, OrderedPlayerWithInfo[]>();
+
+// ---------------------------------------------------------------------------
+// Bot reference (needed for Sista Chansen from resolveExecution context)
+// ---------------------------------------------------------------------------
+
+let botRef: Bot | null = null;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Promise-based sleep helper for dramatic delays.
+ */
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * Get a display name for a player (prefer username, fallback to first_name).
@@ -206,9 +238,249 @@ async function checkAndResolveExecution(
   return true;
 }
 
+// ---------------------------------------------------------------------------
+// Sista Chansen flow
+// ---------------------------------------------------------------------------
+
+/**
+ * Initiate the Sista Chansen flow after a win condition is met.
+ * Sends group announcement, DMs to guessing team, sets 2-hour timeout.
+ */
+async function initiateSistaChansen(
+  bot: Bot,
+  game: Game,
+  winner: "ligan" | "aina",
+  liganScore: number,
+  ainaScore: number,
+): Promise<void> {
+  const queue = getMessageQueue();
+  const guessingSide = getSistaChansenSide(liganScore, ainaScore) as GuessingSide;
+
+  const players = await getGamePlayersOrderedWithInfo(game.id);
+
+  // 1. GROUP ANNOUNCEMENT: Tell guessing team to discuss in group first
+  await queue.send(
+    game.group_chat_id,
+    MESSAGES.SISTA_CHANSEN_INTRO(guessingSide),
+    { parse_mode: "HTML" },
+  );
+
+  // 2. Determine guessing team members
+  const guessers = players.filter((p) => {
+    if (guessingSide === "golare") return p.role === "golare";
+    // akta side: all akta players, NOT hogra_hand
+    return p.role === "akta";
+  });
+
+  // 3. Determine candidate targets: all players minus the guessers
+  const guesserIdSet = new Set(guessers.map((g) => g.id));
+  const candidates = players.filter((p) => !guesserIdSet.has(p.id));
+
+  // Store candidates in memory for callback resolution
+  sistaChangensCandidates.set(game.id, candidates);
+
+  // 4. Build inline keyboard with candidate names
+  const kb = new InlineKeyboard();
+  for (let i = 0; i < candidates.length; i++) {
+    const name = displayName(candidates[i].players);
+    kb.text(name, `sc:${game.id}:${i}`).row();
+  }
+
+  // 5. Determine target description for DM
+  const targetDescription = guessingSide === "golare"
+    ? "Guzmans Högra Hand"
+    : "en Golare";
+
+  const candidateNames = candidates.map((c) => displayName(c.players));
+
+  // 6. Send DMs to each guesser and track message IDs
+  const guesserDMs: GuesserDMInfo[] = [];
+  const dmPromises = guessers.map(async (guesser) => {
+    try {
+      const msg = await queue.send(
+        guesser.players.dm_chat_id,
+        MESSAGES.SISTA_CHANSEN_DM(targetDescription, candidateNames),
+        { parse_mode: "HTML", reply_markup: kb },
+      );
+      guesserDMs.push({
+        playerId: guesser.id,
+        messageId: msg.message_id,
+        chatId: guesser.players.dm_chat_id,
+      });
+    } catch (err) {
+      console.error(
+        `[game-loop] Failed to send Sista Chansen DM to ${displayName(guesser.players)}:`,
+        err,
+      );
+    }
+  });
+
+  await Promise.all(dmPromises);
+  sistaChansensMessages.set(game.id, guesserDMs);
+
+  // 7. Set 2-hour timeout
+  const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+  const timeout = setTimeout(async () => {
+    try {
+      // Check if guess was already made
+      const existing = await getSistaChansen(game.id);
+      if (existing) return; // Already handled
+
+      console.log(`[game-loop] Sista Chansen timeout for game ${game.id}`);
+
+      // Remove buttons from all guessers' DMs
+      await removeGuesserButtons(bot, game.id);
+
+      // Proceed to final reveal with no guess (timeout)
+      await performFinalReveal(bot, game, game.group_chat_id, null, winner);
+    } catch (err) {
+      console.error(`[game-loop] Sista Chansen timeout handler failed for game ${game.id}:`, err);
+    }
+  }, TWO_HOURS_MS);
+
+  sistaChansensTimeouts.set(game.id, timeout);
+
+  console.log(
+    `[game-loop] Sista Chansen initiated for game ${game.id} (guessing_side=${guessingSide})`,
+  );
+}
+
+/**
+ * Remove inline keyboard buttons from all guessers' DMs for a game.
+ */
+async function removeGuesserButtons(bot: Bot, gameId: string): Promise<void> {
+  const dmInfos = sistaChansensMessages.get(gameId);
+  if (!dmInfos) return;
+
+  const editPromises = dmInfos.map((info) =>
+    bot.api.editMessageReplyMarkup(info.chatId, info.messageId, {
+      reply_markup: { inline_keyboard: [] },
+    }).catch((err) => {
+      if (!isMessageNotModifiedError(err)) {
+        console.error(
+          `[game-loop] Failed to remove Sista Chansen buttons for player ${info.playerId}:`,
+          err,
+        );
+      }
+    }),
+  );
+
+  await Promise.all(editPromises);
+  sistaChansensMessages.delete(gameId);
+}
+
+/**
+ * Clean up in-memory Sista Chansen state for a game.
+ */
+function cleanupSistaChansen(gameId: string): void {
+  const timeout = sistaChansensTimeouts.get(gameId);
+  if (timeout) {
+    clearTimeout(timeout);
+    sistaChansensTimeouts.delete(gameId);
+  }
+  sistaChansensMessages.delete(gameId);
+  sistaChangensCandidates.delete(gameId);
+}
+
+// ---------------------------------------------------------------------------
+// Final reveal
+// ---------------------------------------------------------------------------
+
+/**
+ * Perform the dramatic final reveal sequence:
+ * 1. Build suspense (30s delays)
+ * 2. Reveal Sista Chansen result
+ * 3. Full role reveal
+ * 4. Set game to finished
+ */
+async function performFinalReveal(
+  bot: Bot,
+  game: Game,
+  groupChatId: number,
+  sistaChansen: SistaChansen | null,
+  originalWinner: "ligan" | "aina",
+): Promise<void> {
+  const queue = getMessageQueue();
+
+  // Determine actual winner based on Sista Chansen result
+  let finalWinner = originalWinner;
+
+  // 1. Suspense message 1
+  await queue.send(groupChatId, "...", { parse_mode: "HTML" });
+  await sleep(30_000);
+
+  // 2. Suspense message 2
+  await queue.send(
+    groupChatId,
+    "Guzman räknar... kollar korten... 👀",
+    { parse_mode: "HTML" },
+  );
+  await sleep(30_000);
+
+  // 3. Sista Chansen result reveal
+  if (sistaChansen) {
+    if (sistaChansen.correct) {
+      // Correct guess flips the winner
+      finalWinner = originalWinner === "ligan" ? "aina" : "ligan";
+      const winningSideName = finalWinner === "ligan" ? "Ligan" : "Aina";
+      await queue.send(
+        groupChatId,
+        MESSAGES.SISTA_CHANSEN_CORRECT(winningSideName),
+        { parse_mode: "HTML" },
+      );
+    } else {
+      const winningSideName = originalWinner === "ligan" ? "Ligan" : "Aina";
+      await queue.send(
+        groupChatId,
+        MESSAGES.SISTA_CHANSEN_WRONG(winningSideName),
+        { parse_mode: "HTML" },
+      );
+    }
+  } else {
+    // Timeout -- no guess made
+    const winningSideName = originalWinner === "ligan" ? "Ligan" : "Aina";
+    await queue.send(
+      groupChatId,
+      MESSAGES.SISTA_CHANSEN_TIMEOUT(winningSideName),
+      { parse_mode: "HTML" },
+    );
+  }
+  await sleep(30_000);
+
+  // 4. Full role reveal
+  const players = await getGamePlayersOrderedWithInfo(game.id);
+  const roleData = players.map((p) => ({
+    name: displayName(p.players),
+    role: p.role ?? "akta",
+  }));
+
+  await queue.send(
+    groupChatId,
+    MESSAGES.FINAL_REVEAL(roleData),
+    { parse_mode: "HTML" },
+  );
+
+  // 5. Set game state to finished
+  await updateGame(game.id, { state: "finished" });
+
+  // 6. Clean up in-memory state
+  cleanupSistaChansen(game.id);
+
+  console.log(
+    `[game-loop] Game ${game.id} finished. Final winner: ${finalWinner}`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Resolve execution
+// ---------------------------------------------------------------------------
+
 /**
  * Resolve the execution: compute result, update scores, check win condition.
  * Used by both early resolution and the 21:00 handler.
+ *
+ * When a win condition is met, initiates Sista Chansen instead of
+ * immediately finishing the game.
  */
 async function resolveExecution(
   game: Game,
@@ -283,12 +555,17 @@ async function resolveExecution(
       );
     }
 
-    // Transition to sista_chansen state (Plan 04 handles the actual flow)
-    // For now, mark game state but keep it "active" so Plan 04 can implement Sista Chansen
-    await updateGame(game.id, { state: "finished" });
+    // Initiate Sista Chansen instead of immediately finishing
+    if (botRef) {
+      await initiateSistaChansen(botRef, game, winner, newLiganScore, newAinaScore);
+    } else {
+      // Fallback: no bot ref available (should not happen in production)
+      console.error("[game-loop] No bot reference for Sista Chansen -- finishing game directly");
+      await updateGame(game.id, { state: "finished" });
+    }
 
     console.log(
-      `[game-loop] Game ${game.id} won by ${winner} (${newLiganScore}-${newAinaScore})`,
+      `[game-loop] Game ${game.id} won by ${winner} (${newLiganScore}-${newAinaScore}) -- Sista Chansen initiated`,
     );
   } else {
     // No winner yet -- round ends
@@ -914,6 +1191,139 @@ async function handleMissionActionCallback(
 }
 
 // ---------------------------------------------------------------------------
+// Sista Chansen guess: sc:{gameId}:{candidateIndex}
+// ---------------------------------------------------------------------------
+
+gameLoopHandler.callbackQuery(/^sc:(.+):(\d+)$/, async (ctx) => {
+  if (!ctx.from) return;
+
+  try {
+    const gameId = ctx.match[1];
+    const candidateIndex = parseInt(ctx.match[2], 10);
+
+    // Get game -- must still be active
+    const game = await getGameById(gameId);
+    if (!game || game.state !== "active") {
+      await ctx.answerCallbackQuery({ text: "Spelet är inte aktivt." });
+      return;
+    }
+
+    // Get the player in this game
+    const gamePlayer = await getGamePlayerByTelegramId(gameId, ctx.from.id);
+    if (!gamePlayer) {
+      await ctx.answerCallbackQuery({
+        text: "Du är inte med i det här spelet, bre.",
+        show_alert: true,
+      });
+      return;
+    }
+
+    // Resolve candidate from in-memory list
+    const candidates = sistaChangensCandidates.get(gameId);
+    if (!candidates || candidateIndex < 0 || candidateIndex >= candidates.length) {
+      await ctx.answerCallbackQuery({ text: "Ogiltigt val, bre." });
+      return;
+    }
+
+    const targetPlayer = candidates[candidateIndex];
+
+    // Determine guessing side
+    const guessingSide = getSistaChansenSide(game.ligan_score, game.aina_score);
+    if (!guessingSide) {
+      await ctx.answerCallbackQuery({ text: "Något gick fel, bre." });
+      return;
+    }
+
+    // ATOMIC FIRST-GUESS-WINS: try to create the sista_chansen record
+    let sistaChansen: SistaChansen;
+    try {
+      sistaChansen = await createSistaChansen(
+        gameId,
+        guessingSide,
+        targetPlayer.id,
+        gamePlayer.id,
+      );
+    } catch (_err) {
+      // Unique violation -- someone already guessed
+      await ctx.answerCallbackQuery({
+        text: "Gissningen är redan gjord, bre.",
+        show_alert: true,
+      });
+      return;
+    }
+
+    // Determine if guess is correct
+    let correct = false;
+    if (guessingSide === "golare") {
+      // Golare guess Hogra Hand
+      correct = targetPlayer.role === "hogra_hand";
+    } else {
+      // Akta guess a Golare
+      correct = targetPlayer.role === "golare";
+    }
+
+    // Update sista_chansen record with correct result
+    await updateSistaChansen(sistaChansen.id, { correct });
+    sistaChansen.correct = correct;
+
+    // Get names for announcement
+    const players = await getGamePlayersOrderedWithInfo(gameId);
+    const guesserInfo = players.find((p) => p.id === gamePlayer.id);
+    const guesserName = guesserInfo ? displayName(guesserInfo.players) : "Okänd";
+    const targetName = displayName(targetPlayer.players);
+
+    // Send group announcement
+    const queue = getMessageQueue();
+    await queue.send(
+      game.group_chat_id,
+      MESSAGES.SISTA_CHANSEN_GUESS_MADE(guesserName, targetName),
+      { parse_mode: "HTML" },
+    );
+
+    // Edit guesser's DM to remove buttons
+    try {
+      await ctx.editMessageText(
+        `Du pekade på <b>${targetName}</b>. Nu väntar vi på avslöjandet... 🎲`,
+        { parse_mode: "HTML" },
+      );
+    } catch (editErr) {
+      if (!isMessageNotModifiedError(editErr)) {
+        console.error("[game-loop] sista chansen DM edit failed:", editErr);
+      }
+    }
+
+    // Remove buttons from ALL other guessers' DMs
+    if (botRef) {
+      await removeGuesserButtons(botRef, gameId);
+    }
+
+    // Clear the 2-hour timeout
+    const timeout = sistaChansensTimeouts.get(gameId);
+    if (timeout) {
+      clearTimeout(timeout);
+      sistaChansensTimeouts.delete(gameId);
+    }
+
+    await ctx.answerCallbackQuery({ text: "Gissning registrerad!" });
+
+    // Determine original winner for final reveal
+    const originalWinner = checkWinCondition(game.ligan_score, game.aina_score);
+    if (!originalWinner) {
+      console.error(`[game-loop] No winner found for game ${gameId} during Sista Chansen`);
+      return;
+    }
+
+    // Proceed to dramatic final reveal
+    if (botRef) {
+      await performFinalReveal(botRef, game, game.group_chat_id, sistaChansen, originalWinner);
+    }
+  } catch (error) {
+    console.error("[game-loop] sista chansen callback failed:", error);
+    await ctx.answerCallbackQuery({ text: "Något gick fel, bre." });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // DB helpers (thin wrappers for readability)
 // ---------------------------------------------------------------------------
 
@@ -940,6 +1350,9 @@ async function getGameById(gameId: string): Promise<Game | null> {
  * These are wired into the scheduler via bot.ts.
  */
 export function createScheduleHandlers(bot: Bot): ScheduleHandlers {
+  // Store bot reference for Sista Chansen flow (needed by resolveExecution)
+  botRef = bot;
+
   const queue = getMessageQueue();
 
   // -------------------------------------------------------------------------
@@ -1523,7 +1936,8 @@ export function createScheduleHandlers(bot: Bot): ScheduleHandlers {
                   { parse_mode: "HTML" },
                 );
               }
-              await updateGame(game.id, { state: "finished" });
+              // Initiate Sista Chansen for kaos-fail win condition too
+              await initiateSistaChansen(bot, game, winner, game.ligan_score, game.aina_score);
             } else {
               await queue.send(
                 game.group_chat_id,

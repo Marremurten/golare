@@ -645,3 +645,24 @@ export async function getSistaChansen(
 
   return data as SistaChansen | null;
 }
+
+/**
+ * Update a Sista Chansen record (e.g. set correct=true/false).
+ */
+export async function updateSistaChansen(
+  id: string,
+  updates: Partial<SistaChansen>,
+): Promise<SistaChansen> {
+  const { data, error } = await supabase
+    .from("sista_chansen")
+    .update(updates)
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(`updateSistaChansen failed: ${error.message}`);
+  }
+
+  return data as SistaChansen;
+}
