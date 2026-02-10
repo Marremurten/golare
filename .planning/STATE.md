@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 ## Current Position
 
 Phase: 3 of 5 (Game Loop)
-Plan: 0 of 4 in current phase
-Status: Ready to plan
-Last activity: 2026-02-10 -- Phase 2 (Game Lobby) complete and verified. All 5 success criteria passed.
+Plan: 1 of 4 in current phase
+Status: Executing
+Last activity: 2026-02-10 -- Phase 3 Plan 01 (Game Loop Foundation) complete.
 
-Progress: [====......] 40%
+Progress: [=====.....] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
+- Total plans completed: 7
 - Average duration: 7min
-- Total execution time: 0.72 hours
+- Total execution time: 0.84 hours
 
 **By Phase:**
 
@@ -29,10 +29,11 @@ Progress: [====......] 40%
 |-------|-------|-------|----------|
 | 01-foundation | 3/3 | 31min | 10min |
 | 02-game-lobby | 3/3 | 12min | 4min |
+| 03-game-loop | 1/4 | 7min | 7min |
 
 **Recent Trend:**
-- Last 5 plans: 01-03 (21min), 02-01 (4min), 02-02 (4min), 02-03 (4min)
-- Trend: fast (all Phase 2 plans fully autonomous, ~4min each)
+- Last 5 plans: 02-01 (4min), 02-02 (4min), 02-03 (4min), 03-01 (7min)
+- Trend: consistent (larger plan took proportionally longer)
 
 *Updated after each plan completion*
 
@@ -70,6 +71,11 @@ Recent decisions affecting current work:
 - Dual-context commands: /regler and /status work in both group and DM with different behavior
 - Module-level constants for rules page strings to avoid self-reference in MESSAGES object
 - getPlayerActiveGame returns Game + GamePlayer tuple for efficient DM status display
+- Croner 10.x for zero-dependency ESM-native timezone-aware cron scheduling
+- Pure FSM functions (no class, no side effects) for testable phase transitions
+- UNIQUE constraint on sista_chansen(game_id) for atomic first-guess-wins
+- Global scheduler (not per-game) with DB queries per tick for restart safety
+- Upsert with onConflict for castVote and castMissionAction (double-click safety)
 
 ### Pending Todos
 
@@ -84,5 +90,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Phase 2 (Game Lobby) complete and verified. Ready to plan Phase 3 (Game Loop).
+Stopped at: Completed 03-01-PLAN.md (Game Loop Foundation). Ready for 03-02-PLAN.md.
 Resume file: None
