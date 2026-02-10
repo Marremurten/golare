@@ -16,7 +16,7 @@ The social deduction experience — the paranoia, accusations, and bluffing betw
 
 ### Active
 
-- [ ] Bot connects to Telegram via Telegraf.js and responds to commands
+- [ ] Bot connects to Telegram via grammY and responds to commands
 - [ ] Players register via `/start` in private chat (saves chat_id)
 - [ ] Admin starts game with `/nyttspel` in group chat
 - [ ] Roles assigned secretly via DM: Äkta, Golare, Guzmans Högra Hand
@@ -98,7 +98,7 @@ Ligans paranoida ledare. Litar inte på någon, stressad över polisen, hotar st
 ## Constraints
 
 - **Platform**: Telegram Bot — all interaction through Telegram group + private chats
-- **Tech Stack**: Node.js, Telegraf.js, OpenAI API (GPT-4o), Supabase — decided
+- **Tech Stack**: Node.js, grammY, OpenAI API (GPT-4o), Supabase — decided
 - **Language**: Swedish with förorts-slang — core to the identity
 - **Players**: 4-10 per game — balancing designed for this range
 - **Schedule**: Fixed 5-day format (mån-fre) for v1
@@ -115,6 +115,10 @@ Ligans paranoida ledare. Litar inte på någon, stressad över polisen, hotar st
 | Configurable length → v2 | Keep v1 scope manageable, 5 days is default | — Pending |
 | Anonymous whispers for anti-passivity | Non-team players need something to do | — Pending |
 | Symmetrisk slutmekanik | Both sides deserve comeback chance | — Pending |
+| grammY over Telegraf | Telegraf EOL Feb 2025; grammY has native Supabase adapter, active dev, better TS | — Pending |
+| Template fallbacks for AI | Game must never block on OpenAI API failure | — Pending |
+| Message queue for rate limits | Telegram 20 msg/min per group; queue is foundational | — Pending |
+| Role reveal at game end | Emotional payoff moment — research confirms table stakes | — Pending |
 
 ---
-*Last updated: 2026-02-10 after initialization*
+*Last updated: 2026-02-10 after requirements definition*
