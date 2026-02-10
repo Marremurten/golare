@@ -5,6 +5,55 @@
  * IMPORTANT: All Swedish text MUST use proper åäö characters.
  * Never substitute with a/a/o.
  */
+
+// ---------------------------------------------------------------------------
+// Rules page content (extracted for RULES_PAGE function self-reference)
+// ---------------------------------------------------------------------------
+
+const _RULES_PAGE_ROLLER =
+  "<b>🎭 Rollerna i Ligan</b>\n\n" +
+  "Lyssna upp, det finns tre typer av folk i det här spelet:\n\n" +
+  "<b>Äkta</b> -- Ligans lojala medlemmar. Genomför stötar för att " +
+  "hålla verksamheten igång. Ni är familjen, bre.\n\n" +
+  "<b>Golare</b> -- Infiltratörer som jobbar med Aina. " +
+  "Vet vilka de andra Golare är. Saboterar stötar inifrån. " +
+  "Råttor, helt enkelt. 🐀\n\n" +
+  "<b>Guzmans Högra Hand</b> -- En av de Äkta med specialförmågan " +
+  '"Spaning" (kan kolla en spelares riktiga roll en gång under spelet). ' +
+  "Måste hålla sig dold -- om Golare listar ut vem det är, " +
+  "kan dom stjäla vinsten. 🔍\n\n" +
+  "<i>Ligan vs Aina. Familj vs Förrädare. Välj sida.</i>";
+
+const _RULES_PAGE_SPELGANG =
+  "<b>⚙️ Spelgång</b>\n\n" +
+  "Varje runda kör vi igenom fem steg, bre:\n\n" +
+  "<b>1. Capo-val (09:00)</b> -- En spelare blir Capo och " +
+  "väljer sitt team för rundan.\n\n" +
+  "<b>2. Röstning (12:00)</b> -- Gruppen röstar JA eller NEJ " +
+  "på Capos teamval. Tre NEJ i rad = automatisk fail " +
+  "(Kaos-mätaren). 💥\n\n" +
+  "<b>3. Stöten (15:00)</b> -- Teamet genomför uppdraget. " +
+  "Varje teammedlem väljer i hemlighet: Genomför eller Gola.\n\n" +
+  "<b>4. Resultat (18:00)</b> -- Rösterna avslöjas. " +
+  "Minst en Gola-röst = saboterat. Noll Gola = lyckat.\n\n" +
+  "<b>5. Diskussion (21:00)</b> -- Snacka, anklaga, ljug. " +
+  "Sen börjar nästa runda. 🔄\n\n" +
+  "<i>Timing kan variera -- Guzman bestämmer tempot.</i>";
+
+const _RULES_PAGE_VINST =
+  "<b>🏆 Vinstvillkor</b>\n\n" +
+  "Det finns två sätt att vinna, bre:\n\n" +
+  "<b>Ligan vinner:</b> 3 lyckade stötar (inga Gola-röster). " +
+  "Familjen håller ihop och verksamheten rullar. ✅\n\n" +
+  "<b>Aina vinner:</b> 3 saboterade stötar (minst en Gola-röst " +
+  "i varje). Råttorna äter oss inifrån. 🐀\n\n" +
+  "<b>--- Sista Chansen ---</b>\n\n" +
+  "Om Ligan vinner: Golare får <b>en chans</b> att peka ut " +
+  "Guzmans Högra Hand. Rätt gissning = Aina stjäl vinsten! 😱\n\n" +
+  "Om Aina vinner: De Äkta får <b>en chans</b> att peka ut " +
+  "en Golare. Rätt gissning = Ligan stjäl tillbaka vinsten! 💪\n\n" +
+  "<i>Inget är över förrän det är över. Spela smart till sista sekunden.</i>";
+
 export const MESSAGES = {
   /** Welcome message when user /start's the bot directly (no deep link) */
   WELCOME_DIRECT:
@@ -163,4 +212,71 @@ export const MESSAGES = {
 
   /** answerCallbackQuery confirmation for admin on cancel */
   GAME_CANCEL_CONFIRM: "Spelet avbrutet. 🚫",
+
+  // -------------------------------------------------------------------------
+  // Rules pages (Phase 2, Plan 03)
+  // -------------------------------------------------------------------------
+
+  /** Rules page: Roller -- the three roles in the game */
+  RULES_PAGE_ROLLER: _RULES_PAGE_ROLLER,
+
+  /** Rules page: Spelgång -- game flow and daily cycle */
+  RULES_PAGE_SPELGANG: _RULES_PAGE_SPELGANG,
+
+  /** Rules page: Vinst -- win conditions */
+  RULES_PAGE_VINST: _RULES_PAGE_VINST,
+
+  /** Function to get the right rules page content */
+  RULES_PAGE: (page: "roller" | "spelgang" | "vinst"): string => {
+    switch (page) {
+      case "roller":
+        return _RULES_PAGE_ROLLER;
+      case "spelgang":
+        return _RULES_PAGE_SPELGANG;
+      case "vinst":
+        return _RULES_PAGE_VINST;
+    }
+  },
+
+  // -------------------------------------------------------------------------
+  // Status display (Phase 2, Plan 03)
+  // -------------------------------------------------------------------------
+
+  /** Group/general status display */
+  STATUS_TEXT: (data: {
+    liganScore: number;
+    ainaScore: number;
+    round: number;
+    totalRounds: number;
+    state: string;
+    players: Array<{ name: string; isCapo?: boolean }>;
+    capo?: string;
+  }): string => {
+    const playerList = data.players
+      .map((p) => (p.isCapo ? `👑 ${p.name}` : `  ${p.name}`))
+      .join("\n");
+
+    return (
+      "<b>📊 Spelstatus</b>\n\n" +
+      `<b>Ställning:</b> Ligan ${data.liganScore} - ${data.ainaScore} Aina\n` +
+      `<b>Runda:</b> ${data.round}/${data.totalRounds}\n` +
+      `<b>Fas:</b> ${data.state}\n\n` +
+      `<b>Spelare (${data.players.length}):</b>\n` +
+      playerList
+    );
+  },
+
+  /** No active game fallback for /status */
+  STATUS_NO_GAME: "Inget aktivt spel just nu, bre. 🤷",
+
+  /** No active game in group for /status */
+  STATUS_NO_GAME_GROUP:
+    "Inget aktivt spel i den här gruppen just nu, bre. 🤷",
+
+  /** No active game in DM for /status */
+  STATUS_NO_GAME_DM: "Du är inte med i något aktivt spel just nu, bre. 🤷",
+
+  /** Extra DM info showing player's secret role and abilities */
+  STATUS_DM_EXTRA: (role: string, abilities: string): string =>
+    `\n\n<b>🔒 Din roll:</b> ${role}\n<b>Förmågor:</b> ${abilities}`,
 } as const;
