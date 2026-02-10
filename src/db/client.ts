@@ -7,6 +7,13 @@ import type {
   GamePlayer,
   Player,
   PlayerRole,
+  Round,
+  Vote,
+  VoteChoice,
+  MissionActionRow,
+  MissionAction,
+  SistaChansen,
+  GuessingSide,
 } from "./types.js";
 import { config } from "../config.js";
 
@@ -288,6 +295,7 @@ export async function getPlayerActiveGame(
           game_id: row.game_id,
           player_id: row.player_id,
           role: row.role,
+          join_order: row.join_order,
           joined_at: row.joined_at,
         },
       };
@@ -295,4 +303,288 @@ export async function getPlayerActiveGame(
   }
 
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// Game Loop CRUD (Phase 3)
+// ---------------------------------------------------------------------------
+
+/**
+ * Get all games currently in the 'active' state.
+ * Used by the scheduler to process all running games.
+ */
+export async function getAllActiveGames(): Promise<Game[]> {
+  const { data, error } = await supabase
+    .from("games")
+    .select("*")
+    .eq("state", "active");
+
+  if (error) {
+    throw new Error(`getAllActiveGames failed: ${error.message}`);
+  }
+
+  return (data ?? []) as Game[];
+}
+
+/**
+ * Create a new round for a game.
+ */
+export async function createRound(
+  game_id: string,
+  round_number: number,
+  capo_player_id: string,
+): Promise<Round> {
+  const { data, error } = await supabase
+    .from("rounds")
+    .insert({ game_id, round_number, phase: "mission_posted", capo_player_id })
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(`createRound failed: ${error.message}`);
+  }
+
+  return data as Round;
+}
+
+/**
+ * Get the current (latest) round for a game.
+ * Returns null if no rounds exist.
+ */
+export async function getCurrentRound(
+  game_id: string,
+): Promise<Round | null> {
+  const { data, error } = await supabase
+    .from("rounds")
+    .select("*")
+    .eq("game_id", game_id)
+    .order("round_number", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`getCurrentRound failed: ${error.message}`);
+  }
+
+  return data as Round | null;
+}
+
+/**
+ * Update a round row with partial fields.
+ */
+export async function updateRound(
+  round_id: string,
+  updates: Partial<Round>,
+): Promise<Round> {
+  const { data, error } = await supabase
+    .from("rounds")
+    .update(updates)
+    .eq("id", round_id)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(`updateRound failed: ${error.message}`);
+  }
+
+  return data as Round;
+}
+
+/**
+ * Cast a vote for a round. Uses upsert to handle double-clicks gracefully.
+ */
+export async function castVote(
+  round_id: string,
+  game_player_id: string,
+  vote: VoteChoice,
+): Promise<Vote> {
+  const { data, error } = await supabase
+    .from("votes")
+    .upsert(
+      { round_id, game_player_id, vote },
+      { onConflict: "round_id,game_player_id" },
+    )
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(`castVote failed: ${error.message}`);
+  }
+
+  return data as Vote;
+}
+
+/**
+ * Get all votes for a round.
+ */
+export async function getVotesForRound(
+  round_id: string,
+): Promise<Vote[]> {
+  const { data, error } = await supabase
+    .from("votes")
+    .select("*")
+    .eq("round_id", round_id);
+
+  if (error) {
+    throw new Error(`getVotesForRound failed: ${error.message}`);
+  }
+
+  return (data ?? []) as Vote[];
+}
+
+/**
+ * Cast a mission action for a round. Uses upsert for double-click safety.
+ */
+export async function castMissionAction(
+  round_id: string,
+  game_player_id: string,
+  action: MissionAction,
+): Promise<MissionActionRow> {
+  const { data, error } = await supabase
+    .from("mission_actions")
+    .upsert(
+      { round_id, game_player_id, action },
+      { onConflict: "round_id,game_player_id" },
+    )
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(`castMissionAction failed: ${error.message}`);
+  }
+
+  return data as MissionActionRow;
+}
+
+/**
+ * Get all mission actions for a round.
+ */
+export async function getMissionActionsForRound(
+  round_id: string,
+): Promise<MissionActionRow[]> {
+  const { data, error } = await supabase
+    .from("mission_actions")
+    .select("*")
+    .eq("round_id", round_id);
+
+  if (error) {
+    throw new Error(`getMissionActionsForRound failed: ${error.message}`);
+  }
+
+  return (data ?? []) as MissionActionRow[];
+}
+
+/**
+ * Set the join_order for a player in a game.
+ */
+export async function setJoinOrder(
+  game_id: string,
+  player_id: string,
+  join_order: number,
+): Promise<void> {
+  const { error } = await supabase
+    .from("game_players")
+    .update({ join_order })
+    .eq("game_id", game_id)
+    .eq("player_id", player_id);
+
+  if (error) {
+    throw new Error(`setJoinOrder failed: ${error.message}`);
+  }
+}
+
+/**
+ * Get all players in a game ordered by join_order ASC.
+ * Used for Capo rotation.
+ */
+export async function getGamePlayersOrdered(
+  game_id: string,
+): Promise<GamePlayer[]> {
+  const { data, error } = await supabase
+    .from("game_players")
+    .select("*")
+    .eq("game_id", game_id)
+    .order("join_order", { ascending: true });
+
+  if (error) {
+    throw new Error(`getGamePlayersOrdered failed: ${error.message}`);
+  }
+
+  return (data ?? []) as GamePlayer[];
+}
+
+/**
+ * Find a game_player by telegram_user_id within a specific game.
+ * Joins game_players with players to match on telegram_user_id.
+ */
+export async function getGamePlayerByTelegramId(
+  game_id: string,
+  telegram_user_id: number,
+): Promise<GamePlayer | null> {
+  const { data, error } = await supabase
+    .from("game_players")
+    .select("*, players!inner(telegram_user_id)")
+    .eq("game_id", game_id)
+    .eq("players.telegram_user_id", telegram_user_id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`getGamePlayerByTelegramId failed: ${error.message}`);
+  }
+
+  if (!data) return null;
+
+  // Strip the joined players field and return clean GamePlayer
+  const row = data as unknown as GamePlayer & { players: unknown };
+  return {
+    id: row.id,
+    game_id: row.game_id,
+    player_id: row.player_id,
+    role: row.role,
+    join_order: row.join_order,
+    joined_at: row.joined_at,
+  };
+}
+
+/**
+ * Create a Sista Chansen guess. UNIQUE constraint on game_id enforces
+ * first-guess-wins: a second INSERT for the same game_id will throw.
+ * Callers must catch the error to handle the race condition gracefully.
+ */
+export async function createSistaChansen(
+  game_id: string,
+  guessing_side: GuessingSide,
+  target_player_id: string,
+  guessed_by_id: string,
+): Promise<SistaChansen> {
+  const { data, error } = await supabase
+    .from("sista_chansen")
+    .insert({ game_id, guessing_side, target_player_id, guessed_by_id })
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(`createSistaChansen failed: ${error.message}`);
+  }
+
+  return data as SistaChansen;
+}
+
+/**
+ * Get the Sista Chansen guess for a game. Returns null if none yet.
+ */
+export async function getSistaChansen(
+  game_id: string,
+): Promise<SistaChansen | null> {
+  const { data, error } = await supabase
+    .from("sista_chansen")
+    .select("*")
+    .eq("game_id", game_id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`getSistaChansen failed: ${error.message}`);
+  }
+
+  return data as SistaChansen | null;
 }

@@ -68,3 +68,87 @@ CREATE TABLE IF NOT EXISTS game_players (
 
 CREATE INDEX IF NOT EXISTS idx_game_players_game_id ON game_players (game_id);
 CREATE INDEX IF NOT EXISTS idx_game_players_player_id ON game_players (player_id);
+
+-- ---------------------------------------------------------------------------
+-- Rounds table: one row per round in a game (5 rounds max)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS rounds (
+  id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  game_id                  UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+  round_number             INT NOT NULL,
+  phase                    TEXT NOT NULL DEFAULT 'mission_posted',
+  capo_player_id           UUID REFERENCES game_players(id),
+  team_player_ids          UUID[] DEFAULT '{}',
+  consecutive_failed_votes INT NOT NULL DEFAULT 0,
+  mission_result           TEXT,
+  ligan_point              BOOLEAN,
+  nomination_message_id    BIGINT,
+  vote_message_id          BIGINT,
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at               TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT unique_round_per_game UNIQUE (game_id, round_number),
+  CONSTRAINT valid_round_number CHECK (round_number BETWEEN 1 AND 5),
+  CONSTRAINT valid_phase CHECK (phase IN (
+    'mission_posted', 'nomination', 'voting', 'execution', 'reveal'
+  )),
+  CONSTRAINT valid_mission_result CHECK (
+    mission_result IS NULL OR mission_result IN ('success', 'fail', 'kaos_fail')
+  )
+);
+
+CREATE INDEX IF NOT EXISTS idx_rounds_game_id ON rounds (game_id);
+
+CREATE OR REPLACE TRIGGER update_rounds_updated_at
+  BEFORE UPDATE ON rounds
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- ---------------------------------------------------------------------------
+-- Votes table: team approval votes (JA/NEJ) per round
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS votes (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  round_id        UUID NOT NULL REFERENCES rounds(id) ON DELETE CASCADE,
+  game_player_id  UUID NOT NULL REFERENCES game_players(id),
+  vote            TEXT NOT NULL,
+  voted_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT unique_vote_per_round UNIQUE (round_id, game_player_id),
+  CONSTRAINT valid_vote CHECK (vote IN ('ja', 'nej'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_votes_round_id ON votes (round_id);
+
+-- ---------------------------------------------------------------------------
+-- Mission actions: secret Säkra or Gola choices by team members
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS mission_actions (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  round_id        UUID NOT NULL REFERENCES rounds(id) ON DELETE CASCADE,
+  game_player_id  UUID NOT NULL REFERENCES game_players(id),
+  action          TEXT NOT NULL,
+  acted_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT unique_action_per_round UNIQUE (round_id, game_player_id),
+  CONSTRAINT valid_action CHECK (action IN ('sakra', 'gola'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_mission_actions_round_id ON mission_actions (round_id);
+
+-- ---------------------------------------------------------------------------
+-- Sista Chansen: endgame guess (one per game, first-guess-wins)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sista_chansen (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  game_id          UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+  guessing_side    TEXT NOT NULL,
+  target_player_id UUID NOT NULL REFERENCES game_players(id),
+  guessed_by_id    UUID NOT NULL REFERENCES game_players(id),
+  correct          BOOLEAN,
+  guessed_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT unique_sista_chansen_per_game UNIQUE (game_id),
+  CONSTRAINT valid_guessing_side CHECK (guessing_side IN ('golare', 'akta'))
+);
+
+-- ---------------------------------------------------------------------------
+-- Add join_order to game_players for Capo rotation
+-- ---------------------------------------------------------------------------
+ALTER TABLE game_players ADD COLUMN IF NOT EXISTS join_order INT;
