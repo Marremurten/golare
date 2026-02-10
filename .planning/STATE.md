@@ -9,29 +9,29 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 ## Current Position
 
-Phase: 1 of 5 (Foundation)
-Plan: 2 of 3 in current phase
-Status: Executing
-Last activity: 2026-02-10 -- Completed 01-02-PLAN.md (Message queue and DM permission flow)
+Phase: 1 of 5 (Foundation) -- COMPLETE
+Plan: 3 of 3 in current phase (all done)
+Status: Phase complete -- ready for Phase 2 planning
+Last activity: 2026-02-10 -- Completed 01-03-PLAN.md (/start handler and bot integration)
 
-Progress: [===.......] 13%
+Progress: [==........] 20%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
-- Average duration: 5min
-- Total execution time: 0.17 hours
+- Total plans completed: 3
+- Average duration: 10min
+- Total execution time: 0.52 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation | 2/3 | 10min | 5min |
+| 01-foundation | 3/3 | 31min | 10min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (7min), 01-02 (3min)
-- Trend: improving
+- Last 5 plans: 01-01 (7min), 01-02 (3min), 01-03 (21min)
+- Trend: stable (01-03 included human verification checkpoint)
 
 *Updated after each plan completion*
 
@@ -52,6 +52,11 @@ Recent decisions affecting current work:
 - All outbound group messages route through MessageQueue.send(), never direct bot.api.sendMessage
 - Deep link payload format: g_{chatId} for positive, g_n{absId} for negative group IDs
 - Singleton factory for MessageQueue (createMessageQueue at startup, getMessageQueue everywhere else)
+- InlineKeyboard with Regler button on all /start welcome messages (direct and deep link)
+- Placeholder rules callback ("Reglerna kommer snart, bre!") -- real /regler in Phase 2
+- dotenv as runtime dependency for .env loading (Node.js does not auto-load .env)
+- Handler modules as Composer instances registered via bot.use()
+- Bot startup order: config -> bot -> plugins -> queue -> handlers -> error handler -> shutdown -> start
 
 ### Pending Todos
 
@@ -66,5 +71,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Completed 01-02-PLAN.md
+Stopped at: Completed 01-03-PLAN.md -- Phase 1 (Foundation) complete
 Resume file: None
