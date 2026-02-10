@@ -7,11 +7,14 @@ import { startHandler } from "./handlers/start.js";
 import { lobbyHandler } from "./handlers/lobby.js";
 import { gameCommandsHandler } from "./handlers/game-commands.js";
 import {
+  gameLoopHandler,
+  createScheduleHandlers,
+} from "./handlers/game-loop.js";
+import {
   startScheduler,
   stopScheduler,
   recoverMissedEvents,
 } from "./lib/scheduler.js";
-import type { ScheduleHandlers } from "./lib/scheduler.js";
 
 // 1. Create bot instance
 export const bot = new Bot(config.BOT_TOKEN);
@@ -27,35 +30,10 @@ createMessageQueue(bot);
 bot.use(startHandler);
 bot.use(lobbyHandler);
 bot.use(gameCommandsHandler);
+bot.use(gameLoopHandler);
 
-// 5. Scheduler -- placeholder handlers that log events (real logic in later plans)
-const scheduleHandlers: ScheduleHandlers = {
-  onMissionPost: async () => {
-    console.log("[scheduler] onMissionPost triggered");
-  },
-  onNominationReminder: async () => {
-    console.log("[scheduler] onNominationReminder triggered");
-  },
-  onNominationDeadline: async () => {
-    console.log("[scheduler] onNominationDeadline triggered");
-  },
-  onVotingReminder: async () => {
-    console.log("[scheduler] onVotingReminder triggered");
-  },
-  onVotingDeadline: async () => {
-    console.log("[scheduler] onVotingDeadline triggered");
-  },
-  onExecutionReminder: async () => {
-    console.log("[scheduler] onExecutionReminder triggered");
-  },
-  onExecutionDeadline: async () => {
-    console.log("[scheduler] onExecutionDeadline triggered");
-  },
-  onResultReveal: async () => {
-    console.log("[scheduler] onResultReveal triggered");
-  },
-};
-
+// 5. Scheduler -- real handlers from game-loop.ts
+const scheduleHandlers = createScheduleHandlers(bot);
 startScheduler(scheduleHandlers);
 
 // 6. Global error handler

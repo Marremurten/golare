@@ -11,6 +11,7 @@ import {
   getGamePlayersWithInfo,
   getPlayerByTelegramId,
   setPlayerRole,
+  setJoinOrder,
 } from "../db/client.js";
 import { MESSAGES } from "../lib/messages.js";
 import { getRandomError } from "../lib/errors.js";
@@ -330,6 +331,16 @@ lobbyHandler.callbackQuery(/^start:(.+)$/, async (ctx) => {
     // 6. Save roles to database
     await Promise.all(
       assignments.map((a) => setPlayerRole(gameId, a.playerId, a.role)),
+    );
+
+    // 6b. Assign join_order based on joined_at ASC (for Capo rotation)
+    const orderedPlayers = [...players].sort(
+      (a, b) => new Date(a.joined_at).getTime() - new Date(b.joined_at).getTime(),
+    );
+    await Promise.all(
+      orderedPlayers.map((gp, i) =>
+        setJoinOrder(gameId, gp.player_id, i + 1),
+      ),
     );
 
     // 7. Edit lobby message to remove buttons
