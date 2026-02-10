@@ -1,5 +1,6 @@
 /**
- * Game loop handler: mission posting, Capo nomination, and team voting.
+ * Game loop handler: mission posting, Capo nomination, team voting,
+ * execution (Sakra/Gola), and result reveal.
  *
  * Scheduler handler functions (wired into bot.ts):
  *   - handleMissionPost (09:00)
@@ -7,12 +8,17 @@
  *   - handleNominationDeadline (12:00)
  *   - handleVotingReminder (14:00)
  *   - handleVotingDeadline (15:00)
+ *   - handleExecutionReminder (17:00)
+ *   - handleExecutionDeadline (18:00)
+ *   - handleResultReveal (21:00)
  *
  * Callback handlers (on the Composer):
  *   - nt:{roundId}:{playerIndex} -- nomination toggle
  *   - nc:{roundId} -- nomination confirm
  *   - vj:{roundId} -- vote JA
  *   - vn:{roundId} -- vote NEJ
+ *   - ms:{roundId} -- mission Sakra
+ *   - mg:{roundId} -- mission Gola
  */
 
 import { Composer, InlineKeyboard } from "grammy";
@@ -31,12 +37,16 @@ import {
   getVotesForRound,
   getRoundById,
   deleteVotesForRound,
+  castMissionAction,
+  getMissionActionsForRound,
 } from "../db/client.js";
 import type { Game, GamePlayer, Player, Round } from "../db/types.js";
 import {
   nextRoundPhase,
   getCapoIndex,
   computeVoteResult,
+  computeMissionResult,
+  checkWinCondition,
   getTeamSize,
 } from "../lib/game-state.js";
 import { MESSAGES } from "../lib/messages.js";
@@ -133,6 +143,165 @@ function getSelectedIndices(
     }
   }
   return indices;
+}
+
+/**
+ * Build the execution keyboard with Sakra and Gola buttons.
+ */
+function buildExecutionKeyboard(roundId: string): InlineKeyboard {
+  return new InlineKeyboard()
+    .text("Säkra uppdraget ✊", `ms:${roundId}`)
+    .text("Gola! 🐀", `mg:${roundId}`);
+}
+
+/**
+ * Send execution DMs to all team members with Sakra/Gola buttons.
+ * Called after a vote is approved and the phase transitions to 'execution'.
+ */
+async function sendExecutionDMs(
+  game: Game,
+  round: Round,
+  players: OrderedPlayerWithInfo[],
+): Promise<void> {
+  const queue = getMessageQueue();
+  const teamPlayerIdSet = new Set(round.team_player_ids);
+  const kb = buildExecutionKeyboard(round.id);
+
+  const dmPromises = players
+    .filter((p) => teamPlayerIdSet.has(p.id))
+    .map((teamMember) =>
+      queue
+        .send(
+          teamMember.players.dm_chat_id,
+          MESSAGES.EXECUTION_PROMPT(round.round_number),
+          { parse_mode: "HTML", reply_markup: kb },
+        )
+        .catch((err) => {
+          console.error(
+            `[game-loop] Failed to send execution DM to ${displayName(teamMember.players)}:`,
+            err,
+          );
+        }),
+    );
+
+  await Promise.all(dmPromises);
+}
+
+/**
+ * Check if all team members have submitted their mission action.
+ * If yes, resolve the execution immediately (early resolution).
+ * Returns true if resolved early.
+ */
+async function checkAndResolveExecution(
+  game: Game,
+  round: Round,
+): Promise<boolean> {
+  const actions = await getMissionActionsForRound(round.id);
+  const teamSize = round.team_player_ids.length;
+
+  if (actions.length < teamSize) return false;
+
+  // All team members acted -- resolve immediately
+  await resolveExecution(game, round);
+  return true;
+}
+
+/**
+ * Resolve the execution: compute result, update scores, check win condition.
+ * Used by both early resolution and the 21:00 handler.
+ */
+async function resolveExecution(
+  game: Game,
+  round: Round,
+): Promise<void> {
+  const queue = getMessageQueue();
+
+  // Transition to reveal phase
+  const newPhase = nextRoundPhase("execution", "schedule_reveal");
+  await updateRound(round.id, { phase: newPhase });
+
+  // Get all mission actions and compute result
+  const actions = await getMissionActionsForRound(round.id);
+  const teamSize = round.team_player_ids.length;
+  const { success, golaCount } = computeMissionResult(actions, teamSize);
+
+  // Set mission result and score
+  const missionResult = success ? "success" : "fail";
+  const liganPoint = success;
+  await updateRound(round.id, {
+    mission_result: missionResult,
+    ligan_point: liganPoint,
+  });
+
+  // Update game scores
+  const newLiganScore = success ? game.ligan_score + 1 : game.ligan_score;
+  const newAinaScore = success ? game.aina_score : game.aina_score + 1;
+  await updateGame(game.id, {
+    ligan_score: newLiganScore,
+    aina_score: newAinaScore,
+  });
+
+  // Send suspense messages
+  await queue.send(game.group_chat_id, MESSAGES.SUSPENSE_1, {
+    parse_mode: "HTML",
+  });
+
+  // Send result message
+  if (success) {
+    await queue.send(game.group_chat_id, MESSAGES.MISSION_SUCCESS, {
+      parse_mode: "HTML",
+    });
+  } else {
+    await queue.send(
+      game.group_chat_id,
+      MESSAGES.MISSION_FAIL(golaCount),
+      { parse_mode: "HTML" },
+    );
+  }
+
+  // Send score update
+  await queue.send(
+    game.group_chat_id,
+    MESSAGES.SCORE_UPDATE(newLiganScore, newAinaScore, round.round_number),
+    { parse_mode: "HTML" },
+  );
+
+  // Check win condition
+  const winner = checkWinCondition(newLiganScore, newAinaScore);
+  if (winner) {
+    if (winner === "ligan") {
+      await queue.send(
+        game.group_chat_id,
+        MESSAGES.GAME_WON_LIGAN(newLiganScore, newAinaScore),
+        { parse_mode: "HTML" },
+      );
+    } else {
+      await queue.send(
+        game.group_chat_id,
+        MESSAGES.GAME_WON_AINA(newLiganScore, newAinaScore),
+        { parse_mode: "HTML" },
+      );
+    }
+
+    // Transition to sista_chansen state (Plan 04 handles the actual flow)
+    // For now, mark game state but keep it "active" so Plan 04 can implement Sista Chansen
+    await updateGame(game.id, { state: "finished" });
+
+    console.log(
+      `[game-loop] Game ${game.id} won by ${winner} (${newLiganScore}-${newAinaScore})`,
+    );
+  } else {
+    // No winner yet -- round ends
+    await queue.send(
+      game.group_chat_id,
+      MESSAGES.ROUND_END(round.round_number),
+      { parse_mode: "HTML" },
+    );
+
+    console.log(
+      `[game-loop] Round ${round.round_number} complete for game ${game.id} (${newLiganScore}-${newAinaScore})`,
+    );
+  }
 }
 
 /**
@@ -277,6 +446,12 @@ async function handleVoteResult(
       MESSAGES.VOTE_APPROVED(teamNames),
       { parse_mode: "HTML" },
     );
+
+    // Send execution DMs with Sakra/Gola buttons to team members
+    const updatedRound = await getRoundById(round.id);
+    if (updatedRound) {
+      await sendExecutionDMs(game, updatedRound, players);
+    }
   } else {
     // Vote rejected
     const newFailedVotes = round.consecutive_failed_votes + 1;
@@ -645,6 +820,97 @@ async function resolveVoteFromCtx(
 
   // Delegate to shared vote result handler
   await handleVoteResult(result, game, round, players);
+}
+
+// ---------------------------------------------------------------------------
+// Mission Sakra: ms:{roundId}
+// ---------------------------------------------------------------------------
+
+gameLoopHandler.callbackQuery(/^ms:(.+)$/, async (ctx) => {
+  await handleMissionActionCallback(ctx, "sakra");
+});
+
+// ---------------------------------------------------------------------------
+// Mission Gola: mg:{roundId}
+// ---------------------------------------------------------------------------
+
+gameLoopHandler.callbackQuery(/^mg:(.+)$/, async (ctx) => {
+  await handleMissionActionCallback(ctx, "gola");
+});
+
+/**
+ * Shared mission action callback handler for Sakra and Gola.
+ */
+async function handleMissionActionCallback(
+  ctx: Context,
+  action: "sakra" | "gola",
+): Promise<void> {
+  if (!ctx.from || !ctx.match) return;
+
+  try {
+    const roundId = (ctx.match as RegExpMatchArray)[1];
+
+    // Get round
+    const round = await getCurrentRoundById(roundId);
+    if (!round || round.phase !== "execution") {
+      await ctx.answerCallbackQuery({ text: "Stöten är inte aktiv." });
+      return;
+    }
+
+    // Get the player in this game
+    const gamePlayer = await getGamePlayerByTelegramId(
+      round.game_id,
+      ctx.from.id,
+    );
+    if (!gamePlayer) {
+      await ctx.answerCallbackQuery({
+        text: "Du är inte med i det här spelet, bre.",
+        show_alert: true,
+      });
+      return;
+    }
+
+    // Verify player is on the team
+    if (!round.team_player_ids.includes(gamePlayer.id)) {
+      await ctx.answerCallbackQuery({
+        text: "Du är inte med på det här teamet, bre.",
+        show_alert: true,
+      });
+      return;
+    }
+
+    // Cast mission action (upsert handles double-click)
+    await castMissionAction(round.id, gamePlayer.id, action);
+
+    // Edit DM to remove buttons and show confirmation
+    const confirmText = action === "sakra"
+      ? "Du valde Säkra. Lojal, bre. ✊"
+      : "Du valde Gola. Förrädare... 🐀";
+
+    try {
+      await ctx.editMessageText(confirmText, { parse_mode: "HTML" });
+    } catch (editErr) {
+      if (!isMessageNotModifiedError(editErr)) {
+        console.error("[game-loop] mission action edit failed:", editErr);
+      }
+    }
+
+    await ctx.answerCallbackQuery({ text: "Val registrerat!" });
+
+    // Check if all team members have acted -- resolve early
+    const game = await getGameById(round.game_id);
+    if (game) {
+      const resolved = await checkAndResolveExecution(game, round);
+      if (resolved) {
+        console.log(
+          `[game-loop] Early execution resolution for game ${game.id}, round ${round.round_number}`,
+        );
+      }
+    }
+  } catch (error) {
+    console.error("[game-loop] mission action callback failed:", error);
+    await ctx.answerCallbackQuery({ text: "Något gick fel, bre." });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1031,18 +1297,251 @@ export function createScheduleHandlers(bot: Bot): ScheduleHandlers {
   };
 
   // -------------------------------------------------------------------------
-  // Execution & reveal stubs (not implemented in this plan)
+  // 17:00 -- Execution reminder
   // -------------------------------------------------------------------------
   const onExecutionReminder = async (): Promise<void> => {
-    console.log("[scheduler] onExecutionReminder triggered");
+    try {
+      const games = await getAllActiveGames();
+      for (const game of games) {
+        try {
+          const round = await getCurrentRound(game.id);
+          if (!round || round.phase !== "execution") continue;
+
+          // Get team members and check who hasn't acted
+          const players = await getGamePlayersOrderedWithInfo(game.id);
+          const actions = await getMissionActionsForRound(round.id);
+          const actedPlayerIds = new Set(actions.map((a) => a.game_player_id));
+          const teamPlayerIdSet = new Set(round.team_player_ids);
+
+          const pendingMembers = players.filter(
+            (p) => teamPlayerIdSet.has(p.id) && !actedPlayerIds.has(p.id),
+          );
+
+          if (pendingMembers.length === 0) continue;
+
+          // Send DM reminder to each pending team member
+          for (const member of pendingMembers) {
+            const name = displayName(member.players);
+
+            await queue
+              .send(
+                member.players.dm_chat_id,
+                MESSAGES.EXECUTION_REMINDER(name),
+                { parse_mode: "HTML" },
+              )
+              .catch((err) => {
+                console.error(
+                  `[game-loop] Failed to send execution reminder DM to ${name}:`,
+                  err,
+                );
+              });
+
+            // Group reminder per pending member
+            await queue.send(
+              game.group_chat_id,
+              MESSAGES.EXECUTION_REMINDER_GROUP(name),
+              { parse_mode: "HTML" },
+            );
+          }
+        } catch (gameErr) {
+          console.error(
+            `[game-loop] onExecutionReminder failed for game ${game.id}:`,
+            gameErr,
+          );
+        }
+      }
+    } catch (err) {
+      console.error("[game-loop] onExecutionReminder failed:", err);
+    }
   };
 
+  // -------------------------------------------------------------------------
+  // 18:00 -- Execution deadline
+  // -------------------------------------------------------------------------
   const onExecutionDeadline = async (): Promise<void> => {
-    console.log("[scheduler] onExecutionDeadline triggered");
+    try {
+      const games = await getAllActiveGames();
+      for (const game of games) {
+        try {
+          const round = await getCurrentRound(game.id);
+          if (!round) continue;
+
+          if (round.phase === "execution") {
+            // Default missing actions to Sakra
+            const actions = await getMissionActionsForRound(round.id);
+            const actedPlayerIds = new Set(actions.map((a) => a.game_player_id));
+            const teamPlayerIdSet = new Set(round.team_player_ids);
+            const players = await getGamePlayersOrderedWithInfo(game.id);
+
+            for (const player of players) {
+              if (!teamPlayerIdSet.has(player.id)) continue;
+              if (actedPlayerIds.has(player.id)) continue;
+
+              // Default to Sakra
+              await castMissionAction(round.id, player.id, "sakra");
+
+              // Notify the player
+              await queue
+                .send(
+                  player.players.dm_chat_id,
+                  MESSAGES.EXECUTION_DEFAULT,
+                  { parse_mode: "HTML" },
+                )
+                .catch((err) => {
+                  console.error(
+                    `[game-loop] Failed to send execution default DM to ${displayName(player.players)}:`,
+                    err,
+                  );
+                });
+            }
+
+            // Phase stays in 'execution' -- the 21:00 handler will resolve
+            console.log(
+              `[game-loop] Execution deadline processed for game ${game.id}, round ${round.round_number}`,
+            );
+          } else if (round.phase === "nomination") {
+            // Still waiting for nomination after rotation at 15:00
+            // Auto-fail as another failed vote
+            const players = await getGamePlayersOrderedWithInfo(game.id);
+            const oldCapo = players.find(
+              (p) => p.id === round.capo_player_id,
+            );
+            const oldCapoName = oldCapo
+              ? displayName(oldCapo.players)
+              : "Okänd";
+
+            const newFailedVotes = round.consecutive_failed_votes + 1;
+
+            if (newFailedVotes >= 3) {
+              // Kaos-mataren
+              await updateRound(round.id, {
+                consecutive_failed_votes: newFailedVotes,
+              });
+              await handleKaosFail(game, {
+                ...round,
+                consecutive_failed_votes: newFailedVotes,
+              });
+            } else {
+              // Rotate Capo
+              const { newCapoName } = await rotateCapo(
+                round,
+                players,
+                newFailedVotes,
+              );
+
+              await queue.send(
+                game.group_chat_id,
+                MESSAGES.NOMINATION_TIMEOUT(oldCapoName, newCapoName),
+                { parse_mode: "HTML" },
+              );
+
+              // Send Kaos warnings
+              if (newFailedVotes === 1) {
+                await queue.send(
+                  game.group_chat_id,
+                  MESSAGES.KAOS_WARNING_1,
+                  { parse_mode: "HTML" },
+                );
+              } else if (newFailedVotes === 2) {
+                await queue.send(
+                  game.group_chat_id,
+                  MESSAGES.KAOS_WARNING_2,
+                  { parse_mode: "HTML" },
+                );
+              }
+
+              // Send new nomination prompt
+              const teamSize =
+                game.team_size ?? getTeamSize(players.length);
+              const nominationText = MESSAGES.NOMINATION_PROMPT(
+                newCapoName,
+                teamSize,
+              );
+              const nominationKb = buildNominationKeyboard(
+                round.id,
+                players,
+                new Set(),
+                teamSize,
+              );
+
+              const nomMsg = await queue.send(
+                game.group_chat_id,
+                nominationText,
+                { parse_mode: "HTML", reply_markup: nominationKb },
+              );
+
+              await updateRound(round.id, {
+                nomination_message_id: nomMsg.message_id,
+              });
+            }
+          }
+        } catch (gameErr) {
+          console.error(
+            `[game-loop] onExecutionDeadline failed for game ${game.id}:`,
+            gameErr,
+          );
+        }
+      }
+    } catch (err) {
+      console.error("[game-loop] onExecutionDeadline failed:", err);
+    }
   };
 
+  // -------------------------------------------------------------------------
+  // 21:00 -- Result reveal
+  // -------------------------------------------------------------------------
   const onResultReveal = async (): Promise<void> => {
-    console.log("[scheduler] onResultReveal triggered");
+    try {
+      const games = await getAllActiveGames();
+      for (const game of games) {
+        try {
+          const round = await getCurrentRound(game.id);
+          if (!round) continue;
+
+          if (round.phase === "execution") {
+            // Normal execution resolution at 21:00
+            await resolveExecution(game, round);
+
+            console.log(
+              `[game-loop] Result reveal for game ${game.id}, round ${round.round_number}`,
+            );
+          } else if (round.phase === "reveal" && round.mission_result === "kaos_fail") {
+            // Already scored from voting deadline. Kaos-fail was handled.
+            // Check win condition (in case it wasn't checked during voting deadline)
+            const winner = checkWinCondition(game.ligan_score, game.aina_score);
+            if (winner) {
+              if (winner === "ligan") {
+                await queue.send(
+                  game.group_chat_id,
+                  MESSAGES.GAME_WON_LIGAN(game.ligan_score, game.aina_score),
+                  { parse_mode: "HTML" },
+                );
+              } else {
+                await queue.send(
+                  game.group_chat_id,
+                  MESSAGES.GAME_WON_AINA(game.ligan_score, game.aina_score),
+                  { parse_mode: "HTML" },
+                );
+              }
+              await updateGame(game.id, { state: "finished" });
+            } else {
+              await queue.send(
+                game.group_chat_id,
+                MESSAGES.ROUND_END(round.round_number),
+                { parse_mode: "HTML" },
+              );
+            }
+          }
+        } catch (gameErr) {
+          console.error(
+            `[game-loop] onResultReveal failed for game ${game.id}:`,
+            gameErr,
+          );
+        }
+      }
+    } catch (err) {
+      console.error("[game-loop] onResultReveal failed:", err);
+    }
   };
 
   return {
