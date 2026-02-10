@@ -46,7 +46,7 @@ startHandler.command("start", async (ctx) => {
       // If deep link AND already registered, still announce in group
       // (player may have /start'd directly before and is now clicking the deep link)
       if (groupChatId !== null) {
-        const name = ctx.from.first_name || ctx.from.username || "Okand";
+        const name = ctx.from.first_name || ctx.from.username || "Okänd";
         await announceRegistration(groupChatId, name);
         cancelPlayerReminder(groupChatId, ctx.from.id);
       }
@@ -73,7 +73,7 @@ startHandler.command("start", async (ctx) => {
         reply_markup: rulesKeyboard,
       });
 
-      const name = ctx.from.first_name || ctx.from.username || "Okand";
+      const name = ctx.from.first_name || ctx.from.username || "Okänd";
       await announceRegistration(groupChatId, name);
       cancelPlayerReminder(groupChatId, ctx.from.id);
     } else {

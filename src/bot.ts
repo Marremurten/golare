@@ -4,6 +4,7 @@ import { apiThrottler } from "@grammyjs/transformer-throttler";
 import { config } from "./config.js";
 import { createMessageQueue } from "./queue/message-queue.js";
 import { startHandler } from "./handlers/start.js";
+import { lobbyHandler } from "./handlers/lobby.js";
 
 // 1. Create bot instance
 export const bot = new Bot(config.BOT_TOKEN);
@@ -17,6 +18,7 @@ createMessageQueue(bot);
 
 // 4. Register handlers
 bot.use(startHandler);
+bot.use(lobbyHandler);
 
 // 5. Global error handler
 bot.catch((err) => {
