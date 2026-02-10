@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** The social deduction experience -- paranoia, accusations, and bluffing between friends -- driven by an AI game master that actively stirs conflict and keeps every player engaged.
-**Current focus:** Phase 3: Game Loop
+**Current focus:** Phase 3: Game Loop (COMPLETE)
 
 ## Current Position
 
-Phase: 3 of 5 (Game Loop)
-Plan: 3 of 4 in current phase
-Status: Executing
-Last activity: 2026-02-10 -- Phase 3 Plan 03 (Execution, Reveal, Win Condition) complete.
+Phase: 3 of 5 (Game Loop) -- COMPLETE
+Plan: 4 of 4 in current phase (all done)
+Status: Phase Complete
+Last activity: 2026-02-10 -- Phase 3 Plan 04 (Sista Chansen, Final Reveal) complete.
 
-Progress: [=======...] 64%
+Progress: [========..] 71%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
+- Total plans completed: 10
 - Average duration: 7min
-- Total execution time: 1.01 hours
+- Total execution time: 1.16 hours
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: [=======...] 64%
 |-------|-------|-------|----------|
 | 01-foundation | 3/3 | 31min | 10min |
 | 02-game-lobby | 3/3 | 12min | 4min |
-| 03-game-loop | 3/4 | 17min | 5.7min |
+| 03-game-loop | 4/4 | 26min | 6.5min |
 
 **Recent Trend:**
-- Last 5 plans: 02-03 (4min), 03-01 (7min), 03-02 (6min), 03-03 (4min)
-- Trend: consistent, accelerating
+- Last 5 plans: 03-01 (7min), 03-02 (6min), 03-03 (4min), 03-04 (9min)
+- Trend: consistent
 
 *Updated after each plan completion*
 
@@ -84,6 +84,10 @@ Recent decisions affecting current work:
 - Default to Sakra (loyalty assumed) at 18:00 for missing mission actions
 - Game state set to finished on win (Sista Chansen intercepts in Plan 04)
 - getPhaseDisplayName maps round phases to Swedish for /status display
+- Module-level botRef set in createScheduleHandlers for resolveExecution to access bot instance
+- In-memory Maps for Sista Chansen transient state (DM message IDs, timeouts, candidates) -- ephemeral, not DB
+- Candidates = all players minus guessers to prevent information leakage
+- Game stays active during Sista Chansen; transitions to finished only after performFinalReveal
 
 ### Pending Todos
 
@@ -98,5 +102,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Completed 03-03-PLAN.md (Execution, Reveal, Win Condition). Ready for 03-04-PLAN.md.
+Stopped at: Completed 03-04-PLAN.md (Sista Chansen, Final Reveal). Phase 3 (Game Loop) fully complete. Ready for Phase 4.
 Resume file: None
