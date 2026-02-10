@@ -5,10 +5,11 @@ import {
   getPlayerByTelegramId,
   getGamePlayersWithInfo,
   getPlayerActiveGame,
+  getCurrentRound,
 } from "../db/client.js";
 import { MESSAGES } from "../lib/messages.js";
 import { getMessageQueue } from "../queue/message-queue.js";
-import type { PlayerRole } from "../db/types.js";
+import type { PlayerRole, RoundPhase } from "../db/types.js";
 
 // ---------------------------------------------------------------------------
 // Game commands handler (Composer)
@@ -123,6 +124,24 @@ function getStateDisplayName(state: string): string {
 }
 
 /**
+ * Map round phases to Swedish display names.
+ */
+function getPhaseDisplayName(phase: RoundPhase): string {
+  switch (phase) {
+    case "mission_posted":
+      return "Uppdrag postat";
+    case "nomination":
+      return "Capo-val pågående";
+    case "voting":
+      return "Röstning pågående";
+    case "execution":
+      return "Stöten pågående";
+    case "reveal":
+      return "Resultat avslöjas";
+  }
+}
+
+/**
  * Map roles to display info for DM /status.
  */
 function getRoleDisplayInfo(
@@ -217,19 +236,47 @@ gameCommandsHandler.command("status", async (ctx) => {
       }
 
       const players = await getGamePlayersWithInfo(game.id);
-      const playerList = players.map((gp) => ({
-        name: gp.players.username
+
+      // Determine display state: show round phase when game is active
+      let displayState = getStateDisplayName(game.state);
+      let capoName: string | undefined;
+
+      if (game.state === "active") {
+        const round = await getCurrentRound(game.id);
+        if (round) {
+          displayState = getPhaseDisplayName(round.phase);
+
+          // Find Capo name
+          if (round.capo_player_id) {
+            const capoPlayer = players.find((gp) => gp.id === round.capo_player_id);
+            if (capoPlayer) {
+              capoName = capoPlayer.players.username
+                ? `@${capoPlayer.players.username}`
+                : capoPlayer.players.first_name || "Okänd";
+            }
+          }
+        }
+      }
+
+      // Build player list with Capo marking
+      const playerListWithCapo = players.map((gp) => {
+        const name = gp.players.username
           ? `@${gp.players.username}`
-          : gp.players.first_name || "Okänd",
-      }));
+          : gp.players.first_name || "Okänd";
+        return {
+          name,
+          isCapo: capoName ? name === capoName : false,
+        };
+      });
 
       const statusText = MESSAGES.STATUS_TEXT({
         liganScore: game.ligan_score,
         ainaScore: game.aina_score,
         round: game.round,
         totalRounds: 5,
-        state: getStateDisplayName(game.state),
-        players: playerList,
+        state: displayState,
+        players: playerListWithCapo,
+        capo: capoName,
       });
 
       await ctx.reply(statusText, { parse_mode: "HTML" });
@@ -249,19 +296,46 @@ gameCommandsHandler.command("status", async (ctx) => {
 
       const { game, gamePlayer } = result;
       const players = await getGamePlayersWithInfo(game.id);
-      const playerList = players.map((gp) => ({
-        name: gp.players.username
+
+      // Determine display state: show round phase when game is active
+      let displayState = getStateDisplayName(game.state);
+      let capoName: string | undefined;
+
+      if (game.state === "active") {
+        const round = await getCurrentRound(game.id);
+        if (round) {
+          displayState = getPhaseDisplayName(round.phase);
+
+          // Find Capo name
+          if (round.capo_player_id) {
+            const capoPlayer = players.find((gp) => gp.id === round.capo_player_id);
+            if (capoPlayer) {
+              capoName = capoPlayer.players.username
+                ? `@${capoPlayer.players.username}`
+                : capoPlayer.players.first_name || "Okänd";
+            }
+          }
+        }
+      }
+
+      const playerListWithCapo = players.map((gp) => {
+        const name = gp.players.username
           ? `@${gp.players.username}`
-          : gp.players.first_name || "Okänd",
-      }));
+          : gp.players.first_name || "Okänd";
+        return {
+          name,
+          isCapo: capoName ? name === capoName : false,
+        };
+      });
 
       let statusText = MESSAGES.STATUS_TEXT({
         liganScore: game.ligan_score,
         ainaScore: game.aina_score,
         round: game.round,
         totalRounds: 5,
-        state: getStateDisplayName(game.state),
-        players: playerList,
+        state: displayState,
+        players: playerListWithCapo,
+        capo: capoName,
       });
 
       // Append role info if assigned
