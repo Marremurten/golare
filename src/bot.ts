@@ -2,22 +2,29 @@ import { Bot } from "grammy";
 import { autoRetry } from "@grammyjs/auto-retry";
 import { apiThrottler } from "@grammyjs/transformer-throttler";
 import { config } from "./config.js";
+import { createMessageQueue } from "./queue/message-queue.js";
+import { startHandler } from "./handlers/start.js";
 
+// 1. Create bot instance
 export const bot = new Bot(config.BOT_TOKEN);
 
-// Rate limiting: throttle outgoing API calls to stay within Telegram limits
+// 2. Plugin registration: rate limiting and auto-retry
 bot.api.config.use(apiThrottler());
-
-// Auto-retry: retry failed API calls with exponential backoff
 bot.api.config.use(autoRetry({ maxRetryAttempts: 3, maxDelaySeconds: 60 }));
 
-// Global error handler
+// 3. Initialize message queue (singleton -- available app-wide via getMessageQueue())
+createMessageQueue(bot);
+
+// 4. Register handlers
+bot.use(startHandler);
+
+// 5. Global error handler
 bot.catch((err) => {
   console.error("Bot error:", err.message);
   console.error("Context:", err.ctx?.update?.update_id);
 });
 
-// Graceful shutdown
+// 6. Graceful shutdown
 const shutdown = () => {
   console.log("Shutting down...");
   bot.stop();
@@ -25,5 +32,10 @@ const shutdown = () => {
 process.once("SIGINT", shutdown);
 process.once("SIGTERM", shutdown);
 
-// Start the bot with long polling
-await bot.start({ onStart: () => console.log("Golare bot startad!") });
+// 7. Start the bot with long polling
+await bot.start({
+  onStart: () => {
+    console.log("Golare bot startad!");
+    console.log(`Bot username: @${bot.botInfo.username}`);
+  },
+});
