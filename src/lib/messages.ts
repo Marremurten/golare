@@ -528,4 +528,69 @@ export const MESSAGES = {
 
   /** Suspense message 2 (before result reveal) */
   SUSPENSE_2: "Okej... 👀",
+
+  // -------------------------------------------------------------------------
+  // Fallback variants for AI-replaced messages (Phase 4)
+  // -------------------------------------------------------------------------
+
+  /** Lazy Guzman prefix -- used when AI is unavailable to add character */
+  FALLBACK_PREFIX: [
+    "Orka snacka idag bre... ",
+    "Guzman har huvudvärk, shuno... ",
+    "Kort och gott idag mannen... ",
+  ] as const,
+
+  /** 3 variants for mission post (used as AI fallback for variety) */
+  MISSION_POST_VARIANTS: [
+    (roundNumber: number) =>
+      `<b>Runda ${roundNumber} -- ny stöt!</b> 🎯\n\n` +
+      "Ligan, det är dags igen. Vi har ett jobb att fixa " +
+      "och jag behöver folk som håller käften och gör sitt.\n\n" +
+      "Capo väljer teamet. Resten av er -- rösta klokt. 💰",
+    (roundNumber: number) =>
+      `<b>Stöt nummer ${roundNumber}, bre.</b> 🔥\n\n` +
+      "Vakna upp, familjen. Nytt uppdrag, nya risker. " +
+      "Nån jävla råtta kanske sitter och ler just nu.\n\n" +
+      "Capo -- välj ditt team. Resten -- håll ögonen öppna. 👀",
+    (roundNumber: number) =>
+      `<b>Ligan! Runda ${roundNumber}.</b> 🎯\n\n` +
+      "Det är dags för en ny stöt, bre. Vi har ett jobb att göra " +
+      "och jag behöver folk jag kan lita på.\n\n" +
+      "Dagens <b>Capo</b> väljer sitt team. Sen röstar ni andra " +
+      "om ni litar på valet. Gör rätt val -- det är era pengar " +
+      "som står på spel. 💰",
+  ] as const,
+
+  /** 3 variants for mission success (used as AI fallback) */
+  MISSION_SUCCESS_VARIANTS: [
+    "<b>Stöten lyckades!</b> ✅\n\n" +
+      "Alla var lojala -- eller så var Golare för fega att agera. " +
+      "Ligan tar poängen! 💰",
+    "<b>Clean!</b> ✅\n\n" +
+      "Ingen golade. Familjen håller ihop, bre. Poängen är vår. 💰",
+    "<b>Lyckad stöt!</b> ✅\n\n" +
+      "Bra jobbat. Inga råttor den här gången... eller? 🤔",
+  ] as const,
+
+  /** 3 variants for mission fail (used as AI fallback) */
+  MISSION_FAIL_VARIANTS: [
+    (golaCount: number) =>
+      `<b>Stöten misslyckades!</b> ❌\n\n` +
+      `${golaCount} ${golaCount === 1 ? "person golade" : "personer golade"}. ` +
+      "Det finns råttor bland oss, bre. 🐀\nAina tar poängen.",
+    (golaCount: number) =>
+      `<b>Saboterat!</b> ❌\n\n` +
+      `${golaCount} ${golaCount === 1 ? "person" : "personer"} sålde oss. Aina tar poängen. 🐀`,
+    (golaCount: number) =>
+      `<b>Vi åkte dit!</b> ❌\n\n` +
+      `${golaCount} stycken golade. Familjen blöder, bre. 💀`,
+  ] as const,
 } as const;
+
+/**
+ * Pick a random variant from a readonly array.
+ * Uses Math.random for non-security-critical template selection.
+ */
+export function getRandomVariant<T>(variants: readonly T[]): T {
+  return variants[Math.floor(Math.random() * variants.length)];
+}
