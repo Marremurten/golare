@@ -10,28 +10,29 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 ## Current Position
 
 Phase: 2 of 5 (Game Lobby)
-Plan: 0 of 3 in current phase
-Status: Ready to plan
-Last activity: 2026-02-10 -- Phase 1 (Foundation) complete and verified. All 5 requirements passed.
+Plan: 1 of 3 in current phase
+Status: Executing
+Last activity: 2026-02-10 -- Plan 02-01 (Game Lobby) complete. Schema, types, CRUD, and lobby handler done.
 
-Progress: [==........] 20%
+Progress: [===.......] 27%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 10min
-- Total execution time: 0.52 hours
+- Total plans completed: 4
+- Average duration: 9min
+- Total execution time: 0.58 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 3/3 | 31min | 10min |
+| 02-game-lobby | 1/3 | 4min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (7min), 01-02 (3min), 01-03 (21min)
-- Trend: stable (01-03 included human verification checkpoint)
+- Last 5 plans: 01-01 (7min), 01-02 (3min), 01-03 (21min), 02-01 (4min)
+- Trend: fast (02-01 fully autonomous, no checkpoints)
 
 *Updated after each plan completion*
 
@@ -57,6 +58,10 @@ Recent decisions affecting current work:
 - dotenv as runtime dependency for .env loading (Node.js does not auto-load .env)
 - Handler modules as Composer instances registered via bot.use()
 - Bot startup order: config -> bot -> plugins -> queue -> handlers -> error handler -> shutdown -> start
+- Start button visible to all but handler checks game.admin_user_id (Telegram doesn't support per-user inline keyboards)
+- Callback data format: action:uuid (join:, leave:, start:) -- all under 64 bytes
+- Upsert with onConflict for addPlayerToGame to handle double-click race conditions
+- Admin name looked up from players table by admin_user_id, not from callback ctx.from
 
 ### Pending Todos
 
@@ -71,5 +76,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Phase 1 complete and verified. Ready to plan Phase 2 (Game Lobby).
+Stopped at: Completed 02-01-PLAN.md (Game Lobby schema, types, CRUD, and lobby handler). Ready for 02-02.
 Resume file: None
