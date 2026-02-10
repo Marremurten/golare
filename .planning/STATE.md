@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 ## Current Position
 
 Phase: 3 of 5 (Game Loop)
-Plan: 1 of 4 in current phase
+Plan: 2 of 4 in current phase
 Status: Executing
-Last activity: 2026-02-10 -- Phase 3 Plan 01 (Game Loop Foundation) complete.
+Last activity: 2026-02-10 -- Phase 3 Plan 02 (Mission, Nomination, Voting) complete.
 
-Progress: [=====.....] 50%
+Progress: [======....] 57%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 8
 - Average duration: 7min
-- Total execution time: 0.84 hours
+- Total execution time: 0.94 hours
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: [=====.....] 50%
 |-------|-------|-------|----------|
 | 01-foundation | 3/3 | 31min | 10min |
 | 02-game-lobby | 3/3 | 12min | 4min |
-| 03-game-loop | 1/4 | 7min | 7min |
+| 03-game-loop | 2/4 | 13min | 6.5min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (4min), 02-02 (4min), 02-03 (4min), 03-01 (7min)
-- Trend: consistent (larger plan took proportionally longer)
+- Last 5 plans: 02-02 (4min), 02-03 (4min), 03-01 (7min), 03-02 (6min)
+- Trend: consistent
 
 *Updated after each plan completion*
 
@@ -76,6 +76,10 @@ Recent decisions affecting current work:
 - UNIQUE constraint on sista_chansen(game_id) for atomic first-guess-wins
 - Global scheduler (not per-game) with DB queries per tick for restart safety
 - Upsert with onConflict for castVote and castMissionAction (double-click safety)
+- Shared handleVoteResult function for both callback and scheduler vote resolution paths
+- deleteVotesForRound on Capo rotation to allow fresh voting cycle
+- Callback data uses full round UUID (nt:{uuid}:{idx}) -- well within 64-byte limit
+- Toggleable inline keyboard: [x]/[ ] prefix per button, rebuild on each toggle
 
 ### Pending Todos
 
@@ -90,5 +94,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Completed 03-01-PLAN.md (Game Loop Foundation). Ready for 03-02-PLAN.md.
+Stopped at: Completed 03-02-PLAN.md (Mission, Nomination, Voting). Ready for 03-03-PLAN.md.
 Resume file: None
