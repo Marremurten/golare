@@ -514,6 +514,63 @@ export async function getGamePlayersOrdered(
 }
 
 /**
+ * Get all players in a game ordered by join_order ASC, with player info.
+ * Used by game-loop handlers that need names, dm_chat_id, etc.
+ */
+export async function getGamePlayersOrderedWithInfo(
+  game_id: string,
+): Promise<Array<GamePlayer & { players: Player }>> {
+  const { data, error } = await supabase
+    .from("game_players")
+    .select("*, players(*)")
+    .eq("game_id", game_id)
+    .order("join_order", { ascending: true });
+
+  if (error) {
+    throw new Error(`getGamePlayersOrderedWithInfo failed: ${error.message}`);
+  }
+
+  return (data ?? []) as Array<GamePlayer & { players: Player }>;
+}
+
+/**
+ * Get a round by its UUID. Used by callback handlers that receive
+ * the round ID in callback data.
+ */
+export async function getRoundById(
+  round_id: string,
+): Promise<Round | null> {
+  const { data, error } = await supabase
+    .from("rounds")
+    .select("*")
+    .eq("id", round_id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`getRoundById failed: ${error.message}`);
+  }
+
+  return data as Round | null;
+}
+
+/**
+ * Delete all votes for a round. Used when Capo rotates and a new
+ * vote cycle starts within the same round.
+ */
+export async function deleteVotesForRound(
+  round_id: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("votes")
+    .delete()
+    .eq("round_id", round_id);
+
+  if (error) {
+    throw new Error(`deleteVotesForRound failed: ${error.message}`);
+  }
+}
+
+/**
  * Find a game_player by telegram_user_id within a specific game.
  * Joins game_players with players to match on telegram_user_id.
  */
