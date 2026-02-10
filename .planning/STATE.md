@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 ## Current Position
 
 Phase: 4 of 5 (AI Guzman)
-Plan: 1 of 3 in current phase (1 done)
+Plan: 2 of 3 in current phase (2 done)
 Status: In Progress
-Last activity: 2026-02-10 -- Phase 4 Plan 01 (AI Foundation) complete.
+Last activity: 2026-02-10 -- Phase 4 Plan 02 (AI Game Loop Integration) complete.
 
-Progress: [========..] 78%
+Progress: [=========.] 85%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
+- Total plans completed: 12
 - Average duration: 7min
-- Total execution time: 1.24 hours
+- Total execution time: 1.29 hours
 
 **By Phase:**
 
@@ -30,11 +30,11 @@ Progress: [========..] 78%
 | 01-foundation | 3/3 | 31min | 10min |
 | 02-game-lobby | 3/3 | 12min | 4min |
 | 03-game-loop | 4/4 | 26min | 6.5min |
-| 04-ai-guzman | 1/3 | 5min | 5min |
+| 04-ai-guzman | 2/3 | 8min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 03-02 (6min), 03-03 (4min), 03-04 (9min), 04-01 (5min)
-- Trend: consistent
+- Last 5 plans: 03-03 (4min), 03-04 (9min), 04-01 (5min), 04-02 (3min)
+- Trend: consistent, accelerating
 
 *Updated after each plan completion*
 
@@ -94,6 +94,9 @@ Recent decisions affecting current work:
 - zodResponseFormat for structured whisper output (truth_level enum)
 - Narrative context compression: keep last 3 rounds detailed, drop beats for older rounds
 - client.chat.completions.parse() in OpenAI SDK v6 (not deprecated beta path)
+- SUSPENSE_1 kept as static template before AI reveal -- short atmospheric pause doesn't benefit from AI generation
+- Narrative context updated on kaos-fail path too -- story arc tracks all round outcomes for continuity
+- Math.random for template variant selection -- non-security-critical, crypto not needed
 
 ### Pending Todos
 
@@ -108,5 +111,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Completed 04-01-PLAN.md (AI Foundation). Plans 02-03 remaining in Phase 4.
+Stopped at: Completed 04-02-PLAN.md (AI Game Loop Integration). Plan 03 remaining in Phase 4.
 Resume file: None
