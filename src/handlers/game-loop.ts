@@ -62,6 +62,7 @@ import {
   getGuzmanContext,
 } from "../lib/ai-guzman.js";
 import { getMessageQueue } from "../queue/message-queue.js";
+import { triggerEventWhisper } from "./whisper-handler.js";
 import { config } from "../config.js";
 import type { ScheduleHandlers } from "../lib/scheduler.js";
 
@@ -574,6 +575,13 @@ async function resolveExecution(
     narrativeBeats,
   );
 
+  // Fire event whisper after failed mission (fire-and-forget)
+  if (!success) {
+    triggerEventWhisper(game.id, "mission_failed").catch((err) =>
+      console.warn("[game-loop] Event whisper failed:", err),
+    );
+  }
+
   // Check win condition
   const winner = checkWinCondition(newLiganScore, newAinaScore);
   if (winner) {
@@ -678,6 +686,11 @@ async function handleKaosFail(
     "kaos_fail",
     "Kaos-fail efter 3 nej -- gruppen kunde inte enas",
   );
+
+  // Fire event whisper after kaos trigger (fire-and-forget)
+  triggerEventWhisper(game.id, "kaos_triggered").catch((err) =>
+    console.warn("[game-loop] Event whisper failed:", err),
+  );
 }
 
 /**
@@ -752,6 +765,13 @@ async function handleVoteResult(
   players: OrderedPlayerWithInfo[],
 ): Promise<void> {
   const queue = getMessageQueue();
+
+  // Fire event whisper on close votes (margin <= 1, fire-and-forget)
+  if (Math.abs(result.jaCount - result.nejCount) <= 1) {
+    triggerEventWhisper(game.id, "close_vote").catch((err) =>
+      console.warn("[game-loop] Event whisper failed:", err),
+    );
+  }
 
   if (result.approved) {
     // Vote approved -- transition to execution phase
@@ -1394,7 +1414,13 @@ async function getGameById(gameId: string): Promise<Game | null> {
  * Create all schedule handler functions with access to the bot instance.
  * These are wired into the scheduler via bot.ts.
  */
-export function createScheduleHandlers(bot: Bot): ScheduleHandlers {
+/** Game-loop schedule handlers (without whisper handlers, added in bot.ts) */
+export type GameLoopScheduleHandlers = Omit<
+  ScheduleHandlers,
+  "onWhisperAfternoon" | "onWhisperEvening" | "onGapFill"
+>;
+
+export function createScheduleHandlers(bot: Bot): GameLoopScheduleHandlers {
   // Store bot reference for Sista Chansen flow (needed by resolveExecution)
   botRef = bot;
 

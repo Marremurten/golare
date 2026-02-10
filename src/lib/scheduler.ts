@@ -33,6 +33,9 @@ export type ScheduleHandlers = {
   onExecutionReminder: () => Promise<void>;
   onExecutionDeadline: () => Promise<void>;
   onResultReveal: () => Promise<void>;
+  onWhisperAfternoon: () => Promise<void>;
+  onWhisperEvening: () => Promise<void>;
+  onGapFill: () => Promise<void>;
 };
 
 // ---------------------------------------------------------------------------
@@ -46,20 +49,23 @@ const jobs: Cron[] = [];
 // ---------------------------------------------------------------------------
 
 /**
- * Start all 8 cron jobs on the Mon-Fri schedule.
+ * Start all 11 cron jobs on the Mon-Fri schedule.
  */
 export function startScheduler(handlers: ScheduleHandlers): void {
   jobs.push(
     new Cron("0 9 * * 1-5", { timezone: TIMEZONE }, handlers.onMissionPost),
     new Cron("0 11 * * 1-5", { timezone: TIMEZONE }, handlers.onNominationReminder),
     new Cron("0 12 * * 1-5", { timezone: TIMEZONE }, handlers.onNominationDeadline),
+    new Cron("0 13 * * 1-5", { timezone: TIMEZONE }, handlers.onWhisperAfternoon),
     new Cron("0 14 * * 1-5", { timezone: TIMEZONE }, handlers.onVotingReminder),
+    new Cron("0 14,20 * * 1-5", { timezone: TIMEZONE }, handlers.onGapFill),
     new Cron("0 15 * * 1-5", { timezone: TIMEZONE }, handlers.onVotingDeadline),
     new Cron("0 17 * * 1-5", { timezone: TIMEZONE }, handlers.onExecutionReminder),
     new Cron("0 18 * * 1-5", { timezone: TIMEZONE }, handlers.onExecutionDeadline),
+    new Cron("0 19 * * 1-5", { timezone: TIMEZONE }, handlers.onWhisperEvening),
     new Cron("0 21 * * 1-5", { timezone: TIMEZONE }, handlers.onResultReveal),
   );
-  console.log("[scheduler] Started 8 cron jobs (Mon-Fri, Europe/Stockholm)");
+  console.log("[scheduler] Started 11 cron jobs (Mon-Fri, Europe/Stockholm)");
 }
 
 /**
