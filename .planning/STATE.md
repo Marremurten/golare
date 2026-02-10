@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 ## Current Position
 
 Phase: 2 of 5 (Game Lobby)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: Executing
-Last activity: 2026-02-10 -- Plan 02-01 (Game Lobby) complete. Schema, types, CRUD, and lobby handler done.
+Last activity: 2026-02-10 -- Plan 02-02 (Role Assignment & Game Start) complete. Role engine, DM delivery, /avbryt done.
 
-Progress: [===.......] 27%
+Progress: [====......] 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 9min
-- Total execution time: 0.58 hours
+- Total plans completed: 5
+- Average duration: 8min
+- Total execution time: 0.65 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation | 3/3 | 31min | 10min |
-| 02-game-lobby | 1/3 | 4min | 4min |
+| 02-game-lobby | 2/3 | 8min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (7min), 01-02 (3min), 01-03 (21min), 02-01 (4min)
-- Trend: fast (02-01 fully autonomous, no checkpoints)
+- Last 5 plans: 01-02 (3min), 01-03 (21min), 02-01 (4min), 02-02 (4min)
+- Trend: fast (02-02 fully autonomous, no checkpoints)
 
 *Updated after each plan completion*
 
@@ -62,6 +62,10 @@ Recent decisions affecting current work:
 - Callback data format: action:uuid (join:, leave:, start:) -- all under 64 bytes
 - Upsert with onConflict for addPlayerToGame to handle double-click race conditions
 - Admin name looked up from players table by admin_user_id, not from callback ctx.from
+- node:crypto randomInt for Fisher-Yates shuffle (security-critical role assignment)
+- Promise.all for simultaneous DM delivery via separate MessageQueue lanes per chat
+- Catch-and-log per DM -- partial DM failure does not revert game state
+- Game commands as separate Composer (gameCommandsHandler) registered after lobbyHandler
 
 ### Pending Todos
 
@@ -76,5 +80,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Completed 02-01-PLAN.md (Game Lobby schema, types, CRUD, and lobby handler). Ready for 02-02.
+Stopped at: Completed 02-02-PLAN.md (Role Assignment & Game Start). Ready for 02-03.
 Resume file: None
