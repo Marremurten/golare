@@ -29,12 +29,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Bot process is killed and restarted; all previously registered players are still present in the database with no data loss
   3. Bot sends 25 messages in rapid succession to a group chat; all 25 arrive (queued, not dropped) without hitting Telegram 429 errors
   4. A user who has NOT /start'd the bot taps a deep link in the group; they are guided to private chat, complete /start, and the bot confirms DM access
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 01-01: grammY bot setup, Supabase schema, and database client
-- [ ] 01-02: Message queue with rate limiting and DM permission flow
-- [ ] 01-03: Player registration (/start) and integration test
+- [ ] 01-01-PLAN.md -- Project setup, grammY bot skeleton, Supabase schema + client, Swedish message templates
+- [ ] 01-02-PLAN.md -- Per-chat message queue with rate limiting, DM permission flow (deep links, callouts, reminders)
+- [ ] 01-03-PLAN.md -- /start command handler with deep link detection, bot wiring, end-to-end verification
 
 ### Phase 2: Game Lobby
 **Goal**: An admin can start a game in a group, players join, roles are assigned secretly via DM with correct balancing, and all players can access rules and status at any time.
@@ -111,7 +111,7 @@ Phases execute in numeric order: 1 --> 2 --> 3 --> 4 --> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
-| 1. Foundation | 0/3 | Not started | - |
+| 1. Foundation | 0/3 | Planning complete | - |
 | 2. Game Lobby | 0/3 | Not started | - |
 | 3. Game Loop | 0/4 | Not started | - |
 | 4. AI Guzman | 0/3 | Not started | - |
