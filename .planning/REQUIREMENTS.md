@@ -96,48 +96,48 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | — | Pending |
-| INFRA-02 | — | Pending |
-| INFRA-03 | — | Pending |
-| INFRA-04 | — | Pending |
-| INFRA-05 | — | Pending |
-| INFRA-06 | — | Pending |
-| SETUP-01 | — | Pending |
-| SETUP-02 | — | Pending |
-| SETUP-03 | — | Pending |
-| SETUP-04 | — | Pending |
-| SETUP-05 | — | Pending |
-| SETUP-06 | — | Pending |
-| LOOP-01 | — | Pending |
-| LOOP-02 | — | Pending |
-| LOOP-03 | — | Pending |
-| LOOP-04 | — | Pending |
-| LOOP-05 | — | Pending |
-| LOOP-06 | — | Pending |
-| LOOP-07 | — | Pending |
-| LOOP-08 | — | Pending |
-| LOOP-09 | — | Pending |
-| LOOP-10 | — | Pending |
-| ENGAGE-01 | — | Pending |
-| ENGAGE-02 | — | Pending |
-| ENGAGE-03 | — | Pending |
-| ENGAGE-04 | — | Pending |
-| ENGAGE-05 | — | Pending |
-| AI-01 | — | Pending |
-| AI-02 | — | Pending |
-| AI-03 | — | Pending |
-| AI-04 | — | Pending |
-| AI-05 | — | Pending |
-| AI-06 | — | Pending |
-| UX-01 | — | Pending |
-| UX-02 | — | Pending |
-| UX-03 | — | Pending |
+| INFRA-01 | Phase 1: Foundation | Pending |
+| INFRA-02 | Phase 1: Foundation | Pending |
+| INFRA-03 | Phase 1: Foundation | Pending |
+| INFRA-04 | Phase 1: Foundation | Pending |
+| INFRA-05 | Phase 4: AI Guzman | Pending |
+| INFRA-06 | Phase 3: Game Loop | Pending |
+| SETUP-01 | Phase 1: Foundation | Pending |
+| SETUP-02 | Phase 2: Game Lobby | Pending |
+| SETUP-03 | Phase 2: Game Lobby | Pending |
+| SETUP-04 | Phase 2: Game Lobby | Pending |
+| SETUP-05 | Phase 2: Game Lobby | Pending |
+| SETUP-06 | Phase 2: Game Lobby | Pending |
+| LOOP-01 | Phase 3: Game Loop | Pending |
+| LOOP-02 | Phase 3: Game Loop | Pending |
+| LOOP-03 | Phase 3: Game Loop | Pending |
+| LOOP-04 | Phase 3: Game Loop | Pending |
+| LOOP-05 | Phase 3: Game Loop | Pending |
+| LOOP-06 | Phase 3: Game Loop | Pending |
+| LOOP-07 | Phase 3: Game Loop | Pending |
+| LOOP-08 | Phase 3: Game Loop | Pending |
+| LOOP-09 | Phase 3: Game Loop | Pending |
+| LOOP-10 | Phase 3: Game Loop | Pending |
+| ENGAGE-01 | Phase 5: Engagement | Pending |
+| ENGAGE-02 | Phase 5: Engagement | Pending |
+| ENGAGE-03 | Phase 5: Engagement | Pending |
+| ENGAGE-04 | Phase 5: Engagement | Pending |
+| ENGAGE-05 | Phase 5: Engagement | Pending |
+| AI-01 | Phase 4: AI Guzman | Pending |
+| AI-02 | Phase 4: AI Guzman | Pending |
+| AI-03 | Phase 4: AI Guzman | Pending |
+| AI-04 | Phase 4: AI Guzman | Pending |
+| AI-05 | Phase 4: AI Guzman | Pending |
+| AI-06 | Phase 2: Game Lobby | Pending |
+| UX-01 | Phase 2: Game Lobby | Pending |
+| UX-02 | Phase 2: Game Lobby | Pending |
+| UX-03 | Phase 2: Game Lobby | Pending |
 
 **Coverage:**
 - v1 requirements: 36 total
-- Mapped to phases: 0
-- Unmapped: 36 ⚠️
+- Mapped to phases: 36
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-10*
-*Last updated: 2026-02-10 after initial definition*
+*Last updated: 2026-02-10 after roadmap creation -- all 36 requirements mapped*
