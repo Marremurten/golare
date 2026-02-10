@@ -7,16 +7,16 @@
 
 ### Infrastructure
 
-- [ ] **INFRA-01**: Bot connects to Telegram via grammY and responds to commands
-- [ ] **INFRA-02**: Game state persisted in Supabase database (survives bot restarts)
-- [ ] **INFRA-03**: Message queue with rate limiting (respects Telegram 20 msg/min per group)
-- [ ] **INFRA-04**: Players must /start bot privately before game can DM them (onboarding deep link flow)
-- [ ] **INFRA-05**: OpenAI integration with template fallbacks — game never blocks on AI API failure
+- [x] **INFRA-01**: Bot connects to Telegram via grammY and responds to commands
+- [x] **INFRA-02**: Game state persisted in Supabase database (survives bot restarts)
+- [x] **INFRA-03**: Message queue with rate limiting (respects Telegram 20 msg/min per group)
+- [x] **INFRA-04**: Players must /start bot privately before game can DM them (onboarding deep link flow)
+- [x] **INFRA-05**: OpenAI integration with template fallbacks — game never blocks on AI API failure
 - [x] **INFRA-06**: Scheduled events trigger automatically at fixed daily times (09:00, 12:00, 15:00, 18:00, 21:00)
 
 ### Game Setup
 
-- [ ] **SETUP-01**: Players register via /start in private chat (saves Telegram user_id and chat_id)
+- [x] **SETUP-01**: Players register via /start in private chat (saves Telegram user_id and chat_id)
 - [x] **SETUP-02**: Admin starts game with /nyttspel in group chat (minimum 4, maximum 10 players)
 - [x] **SETUP-03**: Roles assigned secretly via DM: Äkta (loyal), Golare (informant), Guzmans Högra Hand (special loyal)
 - [x] **SETUP-04**: Role balancing based on player count (~25% Golare, 1 Högra Hand always among Äkta)
@@ -46,11 +46,11 @@
 
 ### AI Guzman
 
-- [ ] **AI-01**: Guzman persona: paranoid criminal leader, Swedish suburb slang (bre, shuno, aina, para, beckna, guss)
-- [ ] **AI-02**: AI-generated mission narratives — unique dramatic descriptions for each daily mission
-- [ ] **AI-03**: AI-generated result presentations — dramatic reveal of mission success/failure
-- [ ] **AI-04**: Viskningar: Guzman sends private manipulation DMs to players between events (suspicion, lies, false evidence)
-- [ ] **AI-05**: Gap-fill: Guzman reacts to group chat activity between fixed times (comments on silence, aggression, suspicion)
+- [x] **AI-01**: Guzman persona: paranoid criminal leader, Swedish suburb slang (bre, shuno, aina, para, beckna, guss)
+- [x] **AI-02**: AI-generated mission narratives — unique dramatic descriptions for each daily mission
+- [x] **AI-03**: AI-generated result presentations — dramatic reveal of mission success/failure
+- [x] **AI-04**: Viskningar: Guzman sends private manipulation DMs to players between events (suspicion, lies, false evidence)
+- [x] **AI-05**: Gap-fill: Guzman reacts to group chat activity between fixed times (comments on silence, aggression, suspicion)
 - [x] **AI-06**: Template fallback system — pre-written messages for every game event when OpenAI API is unavailable
 
 ### Onboarding & UX
@@ -100,7 +100,7 @@
 | INFRA-02 | Phase 1: Foundation | Complete |
 | INFRA-03 | Phase 1: Foundation | Complete |
 | INFRA-04 | Phase 1: Foundation | Complete |
-| INFRA-05 | Phase 4: AI Guzman | Pending |
+| INFRA-05 | Phase 4: AI Guzman | Complete |
 | INFRA-06 | Phase 3: Game Loop | Complete |
 | SETUP-01 | Phase 1: Foundation | Complete |
 | SETUP-02 | Phase 2: Game Lobby | Complete |
@@ -123,11 +123,11 @@
 | ENGAGE-03 | Phase 5: Engagement | Pending |
 | ENGAGE-04 | Phase 5: Engagement | Pending |
 | ENGAGE-05 | Phase 5: Engagement | Pending |
-| AI-01 | Phase 4: AI Guzman | Pending |
-| AI-02 | Phase 4: AI Guzman | Pending |
-| AI-03 | Phase 4: AI Guzman | Pending |
-| AI-04 | Phase 4: AI Guzman | Pending |
-| AI-05 | Phase 4: AI Guzman | Pending |
+| AI-01 | Phase 4: AI Guzman | Complete |
+| AI-02 | Phase 4: AI Guzman | Complete |
+| AI-03 | Phase 4: AI Guzman | Complete |
+| AI-04 | Phase 4: AI Guzman | Complete |
+| AI-05 | Phase 4: AI Guzman | Complete |
 | AI-06 | Phase 2: Game Lobby | Complete |
 | UX-01 | Phase 2: Game Lobby | Complete |
 | UX-02 | Phase 2: Game Lobby | Complete |

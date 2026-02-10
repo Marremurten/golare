@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation** - Bot connects to Telegram, persists state in Supabase, and handles DM permissions
 - [x] **Phase 2: Game Lobby** - Players create games, receive secret roles via DM, and see rules
 - [x] **Phase 3: Game Loop** - Complete 5-round daily cycle plays through with template messages
-- [ ] **Phase 4: AI Guzman** - AI persona generates narratives, whispers, and reacts to group activity
+- [x] **Phase 4: AI Guzman** - AI persona generates narratives, whispers, and reacts to group activity
 - [ ] **Phase 5: Engagement** - Anti-passivity mechanics keep every player active between events
 
 ## Phase Details
@@ -71,9 +71,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 04-01-PLAN.md -- OpenAI client, Guzman persona prompts, AI generation module with template fallbacks, DB schema for narrative context and whispers
-- [ ] 04-02-PLAN.md -- AI-generated mission narratives and dramatic result reveals integrated into game loop
-- [ ] 04-03-PLAN.md -- Viskningar (whisper DMs) with scheduled + event triggers, gap-fill commentary
+- [x] 04-01-PLAN.md -- OpenAI client, Guzman persona prompts, AI generation module with template fallbacks, DB schema for narrative context and whispers
+- [x] 04-02-PLAN.md -- AI-generated mission narratives and dramatic result reveals integrated into game loop
+- [x] 04-03-PLAN.md -- Viskningar (whisper DMs) with scheduled + event triggers, gap-fill commentary
 
 ### Phase 5: Engagement
 **Goal**: Non-team players have meaningful actions every phase -- anonymous whispers, surveillance, and investigation -- plus anti-blowout mechanics and a dramatic role reveal at game end, making the async format engaging for every player every day.
@@ -94,5 +94,5 @@ Phases execute in numeric order: 1 --> 2 --> 3 --> 4 --> 5
 | 1. Foundation | 3/3 | ✓ Complete | 2026-02-10 |
 | 2. Game Lobby | 3/3 | ✓ Complete | 2026-02-10 |
 | 3. Game Loop | 4/4 | ✓ Complete | 2026-02-10 |
-| 4. AI Guzman | 0/3 | In Progress | - |
+| 4. AI Guzman | 3/3 | ✓ Complete | 2026-02-10 |
 | 5. Engagement | 0/2 | Not started | - |
