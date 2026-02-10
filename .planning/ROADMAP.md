@@ -13,7 +13,7 @@ Golare is an async Telegram social deduction game with an AI game master (Guzman
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Bot connects to Telegram, persists state in Supabase, and handles DM permissions
-- [ ] **Phase 2: Game Lobby** - Players create games, receive secret roles via DM, and see rules
+- [x] **Phase 2: Game Lobby** - Players create games, receive secret roles via DM, and see rules
 - [ ] **Phase 3: Game Loop** - Complete 5-round daily cycle plays through with template messages
 - [ ] **Phase 4: AI Guzman** - AI persona generates narratives, whispers, and reacts to group activity
 - [ ] **Phase 5: Engagement** - Anti-passivity mechanics keep every player active between events
@@ -49,9 +49,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md -- DB schema (games + game_players), lobby handler (/nyttspel, join/leave/start buttons)
-- [ ] 02-02-PLAN.md -- Role assignment engine, secret role DMs, game start monologue, /avbryt
-- [ ] 02-03-PLAN.md -- Paginated /regler, /status with DM role info, replace placeholder rules
+- [x] 02-01-PLAN.md -- DB schema (games + game_players), lobby handler (/nyttspel, join/leave/start buttons)
+- [x] 02-02-PLAN.md -- Role assignment engine, secret role DMs, game start monologue, /avbryt
+- [x] 02-03-PLAN.md -- Paginated /regler, /status with DM role info, replace placeholder rules
 
 ### Phase 3: Game Loop
 **Goal**: A complete 5-round game plays through the full daily cycle -- mission posting, Capo nomination, team voting, secret execution, and result reveal -- on an automated schedule, with all edge cases (failed votes, Kaos-mataren, Sista Chansen) handled via template messages.
@@ -92,7 +92,7 @@ Phases execute in numeric order: 1 --> 2 --> 3 --> 4 --> 5
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
 | 1. Foundation | 3/3 | ✓ Complete | 2026-02-10 |
-| 2. Game Lobby | 0/3 | Planning complete | - |
+| 2. Game Lobby | 3/3 | ✓ Complete | 2026-02-10 |
 | 3. Game Loop | 0/4 | Not started | - |
 | 4. AI Guzman | 0/3 | Not started | - |
 | 5. Engagement | 0/2 | Not started | - |

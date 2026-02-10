@@ -17,11 +17,11 @@
 ### Game Setup
 
 - [ ] **SETUP-01**: Players register via /start in private chat (saves Telegram user_id and chat_id)
-- [ ] **SETUP-02**: Admin starts game with /nyttspel in group chat (minimum 4, maximum 10 players)
-- [ ] **SETUP-03**: Roles assigned secretly via DM: Äkta (loyal), Golare (informant), Guzmans Högra Hand (special loyal)
-- [ ] **SETUP-04**: Role balancing based on player count (~25% Golare, 1 Högra Hand always among Äkta)
-- [ ] **SETUP-05**: Golare receive list of other Golare identities via DM
-- [ ] **SETUP-06**: Högra Hand receives one reliable "Spaning" ability (check one player's true role during game)
+- [x] **SETUP-02**: Admin starts game with /nyttspel in group chat (minimum 4, maximum 10 players)
+- [x] **SETUP-03**: Roles assigned secretly via DM: Äkta (loyal), Golare (informant), Guzmans Högra Hand (special loyal)
+- [x] **SETUP-04**: Role balancing based on player count (~25% Golare, 1 Högra Hand always among Äkta)
+- [x] **SETUP-05**: Golare receive list of other Golare identities via DM
+- [x] **SETUP-06**: Högra Hand receives one reliable "Spaning" ability (check one player's true role during game)
 
 ### Game Loop
 
@@ -51,13 +51,13 @@
 - [ ] **AI-03**: AI-generated result presentations — dramatic reveal of mission success/failure
 - [ ] **AI-04**: Viskningar: Guzman sends private manipulation DMs to players between events (suspicion, lies, false evidence)
 - [ ] **AI-05**: Gap-fill: Guzman reacts to group chat activity between fixed times (comments on silence, aggression, suspicion)
-- [ ] **AI-06**: Template fallback system — pre-written messages for every game event when OpenAI API is unavailable
+- [x] **AI-06**: Template fallback system — pre-written messages for every game event when OpenAI API is unavailable
 
 ### Onboarding & UX
 
-- [ ] **UX-01**: Intro sequence: Guzman explains game rules in character when game starts
-- [ ] **UX-02**: /regler command: clear rules overview accessible by any player at any time
-- [ ] **UX-03**: /status command: shows current score (Ligan vs Aina), round number, and game phase
+- [x] **UX-01**: Intro sequence: Guzman explains game rules in character when game starts
+- [x] **UX-02**: /regler command: clear rules overview accessible by any player at any time
+- [x] **UX-03**: /status command: shows current score (Ligan vs Aina), round number, and game phase
 
 ## v2 Requirements
 
@@ -103,11 +103,11 @@
 | INFRA-05 | Phase 4: AI Guzman | Pending |
 | INFRA-06 | Phase 3: Game Loop | Pending |
 | SETUP-01 | Phase 1: Foundation | Complete |
-| SETUP-02 | Phase 2: Game Lobby | Pending |
-| SETUP-03 | Phase 2: Game Lobby | Pending |
-| SETUP-04 | Phase 2: Game Lobby | Pending |
-| SETUP-05 | Phase 2: Game Lobby | Pending |
-| SETUP-06 | Phase 2: Game Lobby | Pending |
+| SETUP-02 | Phase 2: Game Lobby | Complete |
+| SETUP-03 | Phase 2: Game Lobby | Complete |
+| SETUP-04 | Phase 2: Game Lobby | Complete |
+| SETUP-05 | Phase 2: Game Lobby | Complete |
+| SETUP-06 | Phase 2: Game Lobby | Complete |
 | LOOP-01 | Phase 3: Game Loop | Pending |
 | LOOP-02 | Phase 3: Game Loop | Pending |
 | LOOP-03 | Phase 3: Game Loop | Pending |
@@ -128,10 +128,10 @@
 | AI-03 | Phase 4: AI Guzman | Pending |
 | AI-04 | Phase 4: AI Guzman | Pending |
 | AI-05 | Phase 4: AI Guzman | Pending |
-| AI-06 | Phase 2: Game Lobby | Pending |
-| UX-01 | Phase 2: Game Lobby | Pending |
-| UX-02 | Phase 2: Game Lobby | Pending |
-| UX-03 | Phase 2: Game Lobby | Pending |
+| AI-06 | Phase 2: Game Lobby | Complete |
+| UX-01 | Phase 2: Game Lobby | Complete |
+| UX-02 | Phase 2: Game Lobby | Complete |
+| UX-03 | Phase 2: Game Lobby | Complete |
 
 **Coverage:**
 - v1 requirements: 36 total
