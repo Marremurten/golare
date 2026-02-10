@@ -535,21 +535,27 @@ async function resolveExecution(
   });
 
   // AI-generated result reveal (falls back to template on failure)
-  const revealPlayers = await getGamePlayersOrderedWithInfo(game.id);
-  const revealPlayerNames = revealPlayers.map((p) => displayName(p.players));
-  const revealTeamNames = round.team_player_ids.map((id) => {
-    const gp = revealPlayers.find((p) => p.id === id);
-    return gp ? displayName(gp.players) : "Okänd";
-  });
-  const revealGuzmanCtx = await getGuzmanContext(game.id);
-  const revealText = await generateResultReveal(
-    round.round_number,
-    revealGuzmanCtx,
-    missionResult as "success" | "fail" | "kaos_fail",
-    golaCount,
-    revealPlayerNames,
-    revealTeamNames,
-  );
+  let revealText: string;
+  try {
+    const revealPlayers = await getGamePlayersOrderedWithInfo(game.id);
+    const revealPlayerNames = revealPlayers.map((p) => displayName(p.players));
+    const revealTeamNames = round.team_player_ids.map((id) => {
+      const gp = revealPlayers.find((p) => p.id === id);
+      return gp ? displayName(gp.players) : "Okänd";
+    });
+    const revealGuzmanCtx = await getGuzmanContext(game.id);
+    revealText = await generateResultReveal(
+      round.round_number,
+      revealGuzmanCtx,
+      missionResult as "success" | "fail" | "kaos_fail",
+      golaCount,
+      revealPlayerNames,
+      revealTeamNames,
+    );
+  } catch (aiErr) {
+    console.warn("[game-loop] AI result reveal failed, using template:", aiErr);
+    revealText = success ? MESSAGES.MISSION_SUCCESS : MESSAGES.MISSION_FAIL(golaCount);
+  }
 
   await queue.send(game.group_chat_id, revealText, {
     parse_mode: "HTML",
@@ -562,18 +568,22 @@ async function resolveExecution(
     { parse_mode: "HTML" },
   );
 
-  // Update narrative context for story continuity
-  const missionTheme = `Stöt ${round.round_number}`;
-  const narrativeBeats = success
-    ? "Team lyckades -- alla var lojala"
-    : `${golaCount} golade -- stöten saboterad`;
-  await updateNarrativeContext(
-    game.id,
-    round.round_number,
-    missionTheme,
-    missionResult as "success" | "fail" | "kaos_fail",
-    narrativeBeats,
-  );
+  // Update narrative context for story continuity (non-critical, don't crash on failure)
+  try {
+    const missionTheme = `Stöt ${round.round_number}`;
+    const narrativeBeats = success
+      ? "Team lyckades -- alla var lojala"
+      : `${golaCount} golade -- stöten saboterad`;
+    await updateNarrativeContext(
+      game.id,
+      round.round_number,
+      missionTheme,
+      missionResult as "success" | "fail" | "kaos_fail",
+      narrativeBeats,
+    );
+  } catch (ctxErr) {
+    console.warn("[game-loop] Narrative context update failed:", ctxErr);
+  }
 
   // Fire event whisper after failed mission (fire-and-forget)
   if (!success) {
@@ -678,14 +688,18 @@ async function handleKaosFail(
     { parse_mode: "HTML" },
   );
 
-  // Update narrative context for kaos-fail
-  await updateNarrativeContext(
-    game.id,
-    round.round_number,
-    `Stöt ${round.round_number}`,
-    "kaos_fail",
-    "Kaos-fail efter 3 nej -- gruppen kunde inte enas",
-  );
+  // Update narrative context for kaos-fail (non-critical, don't crash on failure)
+  try {
+    await updateNarrativeContext(
+      game.id,
+      round.round_number,
+      `Stöt ${round.round_number}`,
+      "kaos_fail",
+      "Kaos-fail efter 3 nej -- gruppen kunde inte enas",
+    );
+  } catch (ctxErr) {
+    console.warn("[game-loop] Narrative context update failed:", ctxErr);
+  }
 
   // Fire event whisper after kaos trigger (fire-and-forget)
   triggerEventWhisper(game.id, "kaos_triggered").catch((err) =>
@@ -1472,14 +1486,20 @@ export function createScheduleHandlers(bot: Bot): GameLoopScheduleHandlers {
           }
 
           // Send AI-generated mission narrative (falls back to template on failure)
-          const missionPlayers = await getGamePlayersOrderedWithInfo(game.id);
-          const missionPlayerNames = missionPlayers.map((p) => displayName(p.players));
-          const missionGuzmanCtx = await getGuzmanContext(game.id);
-          const missionText = await generateMissionNarrative(
-            round.round_number,
-            missionGuzmanCtx,
-            missionPlayerNames,
-          );
+          let missionText: string;
+          try {
+            const missionPlayers = await getGamePlayersOrderedWithInfo(game.id);
+            const missionPlayerNames = missionPlayers.map((p) => displayName(p.players));
+            const missionGuzmanCtx = await getGuzmanContext(game.id);
+            missionText = await generateMissionNarrative(
+              round.round_number,
+              missionGuzmanCtx,
+              missionPlayerNames,
+            );
+          } catch (aiErr) {
+            console.warn("[game-loop] AI mission narrative failed, using template:", aiErr);
+            missionText = MESSAGES.MISSION_POST(round.round_number);
+          }
 
           await queue.send(
             game.group_chat_id,
