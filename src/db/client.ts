@@ -14,6 +14,9 @@ import type {
   MissionAction,
   SistaChansen,
   GuessingSide,
+  GuzmanContext,
+  Whisper,
+  WhisperInsert,
 } from "./types.js";
 import { config } from "../config.js";
 
@@ -665,4 +668,120 @@ export async function updateSistaChansen(
   }
 
   return data as SistaChansen;
+}
+
+// ---------------------------------------------------------------------------
+// Guzman Context & Whispers CRUD (Phase 4)
+// ---------------------------------------------------------------------------
+
+const DEFAULT_GUZMAN_CONTEXT: GuzmanContext = {
+  storyArc: "",
+  roundSummaries: [],
+  playerNotes: {},
+  mood: "paranoid",
+};
+
+/**
+ * Get the Guzman narrative context for a game.
+ * Returns a default empty context if none exists.
+ */
+export async function getGuzmanContext(
+  gameId: string,
+): Promise<GuzmanContext> {
+  const { data, error } = await supabase
+    .from("games")
+    .select("guzman_context")
+    .eq("id", gameId)
+    .single();
+
+  if (error) {
+    throw new Error(`getGuzmanContext failed: ${error.message}`);
+  }
+
+  const raw = (data as { guzman_context: Record<string, unknown> | null })
+    .guzman_context;
+
+  if (!raw || Object.keys(raw).length === 0) {
+    return { ...DEFAULT_GUZMAN_CONTEXT };
+  }
+
+  return raw as unknown as GuzmanContext;
+}
+
+/**
+ * Update the Guzman narrative context for a game.
+ */
+export async function updateGuzmanContext(
+  gameId: string,
+  context: GuzmanContext,
+): Promise<void> {
+  const { error } = await supabase
+    .from("games")
+    .update({ guzman_context: context as unknown as Record<string, unknown> })
+    .eq("id", gameId);
+
+  if (error) {
+    throw new Error(`updateGuzmanContext failed: ${error.message}`);
+  }
+}
+
+/**
+ * Create a whisper record (Guzman DM to a player).
+ */
+export async function createWhisper(
+  whisper: WhisperInsert,
+): Promise<Whisper> {
+  const { data, error } = await supabase
+    .from("whispers")
+    .insert(whisper)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(`createWhisper failed: ${error.message}`);
+  }
+
+  return data as Whisper;
+}
+
+/**
+ * Get all whispers for a game, ordered by sent_at ascending.
+ */
+export async function getWhispersForGame(
+  gameId: string,
+): Promise<Whisper[]> {
+  const { data, error } = await supabase
+    .from("whispers")
+    .select("*")
+    .eq("game_id", gameId)
+    .order("sent_at", { ascending: true });
+
+  if (error) {
+    throw new Error(`getWhispersForGame failed: ${error.message}`);
+  }
+
+  return (data ?? []) as Whisper[];
+}
+
+/**
+ * Get whispers sent to a specific player in a specific round.
+ * Used to prevent duplicate whispers to the same player in the same round.
+ */
+export async function getWhispersForPlayerInRound(
+  gameId: string,
+  targetPlayerId: string,
+  roundNumber: number,
+): Promise<Whisper[]> {
+  const { data, error } = await supabase
+    .from("whispers")
+    .select("*")
+    .eq("game_id", gameId)
+    .eq("target_player_id", targetPlayerId)
+    .eq("round_number", roundNumber);
+
+  if (error) {
+    throw new Error(`getWhispersForPlayerInRound failed: ${error.message}`);
+  }
+
+  return (data ?? []) as Whisper[];
 }

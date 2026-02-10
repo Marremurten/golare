@@ -38,6 +38,7 @@ export type Game = {
   ligan_score: number;
   aina_score: number;
   team_size: number | null;
+  guzman_context: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 };
@@ -134,6 +135,44 @@ export type SistaChansen = {
 };
 
 // ---------------------------------------------------------------------------
+// AI Guzman types (Phase 4)
+// ---------------------------------------------------------------------------
+
+/** Structured narrative context for Guzman's story arc */
+export type GuzmanContext = {
+  storyArc: string;
+  roundSummaries: Array<{
+    round: number;
+    missionTheme: string;
+    outcome: "success" | "fail" | "kaos_fail";
+    narrativeBeats: string;
+  }>;
+  playerNotes: Record<string, string>;
+  mood: string;
+};
+
+/** Truth level for Guzman whisper messages */
+export type TruthLevel = "truth" | "half_truth" | "lie";
+
+/** Trigger type for Guzman whispers */
+export type WhisperTrigger = "scheduled" | "event";
+
+/** Full whisper row as returned from the database */
+export type Whisper = {
+  id: string;
+  game_id: string;
+  round_number: number;
+  target_player_id: string;
+  message: string;
+  truth_level: TruthLevel;
+  trigger_type: WhisperTrigger;
+  sent_at: string;
+};
+
+/** Fields for inserting a new whisper (id and sent_at are auto-generated) */
+export type WhisperInsert = Omit<Whisper, "id" | "sent_at">;
+
+// ---------------------------------------------------------------------------
 // Supabase Database type definition
 // ---------------------------------------------------------------------------
 
@@ -220,6 +259,25 @@ export type Database = {
             foreignKeyName: "sista_chansen_game_id_fkey";
             columns: ["game_id"];
             referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      whispers: {
+        Row: Whisper;
+        Insert: WhisperInsert;
+        Update: Partial<Whisper>;
+        Relationships: [
+          {
+            foreignKeyName: "whispers_game_id_fkey";
+            columns: ["game_id"];
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "whispers_target_player_id_fkey";
+            columns: ["target_player_id"];
+            referencedRelation: "game_players";
             referencedColumns: ["id"];
           },
         ];

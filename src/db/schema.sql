@@ -152,3 +152,27 @@ CREATE TABLE IF NOT EXISTS sista_chansen (
 -- Add join_order to game_players for Capo rotation
 -- ---------------------------------------------------------------------------
 ALTER TABLE game_players ADD COLUMN IF NOT EXISTS join_order INT;
+
+-- ---------------------------------------------------------------------------
+-- AI Guzman narrative context (Phase 4)
+-- ---------------------------------------------------------------------------
+ALTER TABLE games ADD COLUMN IF NOT EXISTS guzman_context JSONB DEFAULT '{}';
+
+-- ---------------------------------------------------------------------------
+-- Whispers table: tracks all Guzman DM whispers to players
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS whispers (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  game_id          UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+  round_number     INT NOT NULL,
+  target_player_id UUID NOT NULL REFERENCES game_players(id),
+  message          TEXT NOT NULL,
+  truth_level      TEXT NOT NULL DEFAULT 'truth',
+  trigger_type     TEXT NOT NULL DEFAULT 'scheduled',
+  sent_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT valid_truth_level CHECK (truth_level IN ('truth', 'half_truth', 'lie')),
+  CONSTRAINT valid_trigger_type CHECK (trigger_type IN ('scheduled', 'event'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_whispers_game_id ON whispers (game_id);
+CREATE INDEX IF NOT EXISTS idx_whispers_target_player ON whispers (target_player_id);
