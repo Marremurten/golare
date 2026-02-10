@@ -57,13 +57,13 @@ Plans:
 **Goal**: A complete 5-round game plays through the full daily cycle -- mission posting, Capo nomination, team voting, secret execution, and result reveal -- on an automated schedule, with all edge cases (failed votes, Kaos-mataren, Sista Chansen) handled via template messages.
 **Depends on**: Phase 2
 **Requirements**: LOOP-01 through LOOP-10, INFRA-06
-**Plans**: TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 03-01: State machine, daily event scheduler, and phase transitions
-- [ ] 03-02: Nomination, voting (with Kaos-mataren), and Capo rotation
-- [ ] 03-03: Mission execution, result reveal, and win condition tracking
-- [ ] 03-04: Symmetrisk Sista Chansen and end-of-game flow
+- [ ] 03-01-PLAN.md -- DB schema (rounds/votes/missions), types, CRUD, FSM, Croner scheduler, template messages
+- [ ] 03-02-PLAN.md -- Mission posting, Capo nomination UX, team voting with Kaos-mataren
+- [ ] 03-03-PLAN.md -- Mission execution (Sakra/Gola DMs), result reveal, win condition tracking
+- [ ] 03-04-PLAN.md -- Symmetrisk Sista Chansen, dramatic reveal sequence, end-of-game flow
 
 ### Phase 4: AI Guzman
 **Goal**: Guzman comes alive as an AI-driven persona -- generating unique mission narratives, dramatic result reveals, manipulative private whispers, and reactive gap-fill commentary -- with template fallbacks ensuring the game never breaks if OpenAI is unavailable.
@@ -93,6 +93,6 @@ Phases execute in numeric order: 1 --> 2 --> 3 --> 4 --> 5
 |-------|---------------|--------|-----------|
 | 1. Foundation | 3/3 | ✓ Complete | 2026-02-10 |
 | 2. Game Lobby | 3/3 | ✓ Complete | 2026-02-10 |
-| 3. Game Loop | 0/4 | Not started | - |
+| 3. Game Loop | 0/4 | In progress | - |
 | 4. AI Guzman | 0/3 | Not started | - |
 | 5. Engagement | 0/2 | Not started | - |
