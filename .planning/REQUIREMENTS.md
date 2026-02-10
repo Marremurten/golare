@@ -12,7 +12,7 @@
 - [ ] **INFRA-03**: Message queue with rate limiting (respects Telegram 20 msg/min per group)
 - [ ] **INFRA-04**: Players must /start bot privately before game can DM them (onboarding deep link flow)
 - [ ] **INFRA-05**: OpenAI integration with template fallbacks — game never blocks on AI API failure
-- [ ] **INFRA-06**: Scheduled events trigger automatically at fixed daily times (09:00, 12:00, 15:00, 18:00, 21:00)
+- [x] **INFRA-06**: Scheduled events trigger automatically at fixed daily times (09:00, 12:00, 15:00, 18:00, 21:00)
 
 ### Game Setup
 
@@ -25,16 +25,16 @@
 
 ### Game Loop
 
-- [ ] **LOOP-01**: Daily mission: Guzman posts thematic mission description at 09:00
-- [ ] **LOOP-02**: Capo nomination: rotating Capo nominates a team at 12:00
-- [ ] **LOOP-03**: Team voting: group votes JA/NEJ on proposed team via inline buttons at 15:00
-- [ ] **LOOP-04**: Mission execution: approved team members secretly choose [Säkra] or [Gola] via private buttons at 18:00
-- [ ] **LOOP-05**: Result reveal: Guzman presents mission outcome (success/fail) at 21:00
-- [ ] **LOOP-06**: Failed vote rotates Capo to next player in list
-- [ ] **LOOP-07**: Kaos-mätaren: 3 consecutive NEJ votes in same round → mission auto-fails (Golare get free point)
-- [ ] **LOOP-08**: Win condition: best of 5 missions — first side to 3 wins
-- [ ] **LOOP-09**: Symmetrisk Sista Chansen: if Ligan wins → Golare guess Högra Hand; if Golare wins → Äkta guess one Golare
-- [ ] **LOOP-10**: Team size scales with player count (2 for 4-5, 3 for 6-8, 4 for 9-10)
+- [x] **LOOP-01**: Daily mission: Guzman posts thematic mission description at 09:00
+- [x] **LOOP-02**: Capo nomination: rotating Capo nominates a team at 12:00
+- [x] **LOOP-03**: Team voting: group votes JA/NEJ on proposed team via inline buttons at 15:00
+- [x] **LOOP-04**: Mission execution: approved team members secretly choose [Säkra] or [Gola] via private buttons at 18:00
+- [x] **LOOP-05**: Result reveal: Guzman presents mission outcome (success/fail) at 21:00
+- [x] **LOOP-06**: Failed vote rotates Capo to next player in list
+- [x] **LOOP-07**: Kaos-mätaren: 3 consecutive NEJ votes in same round → mission auto-fails (Golare get free point)
+- [x] **LOOP-08**: Win condition: best of 5 missions — first side to 3 wins
+- [x] **LOOP-09**: Symmetrisk Sista Chansen: if Ligan wins → Golare guess Högra Hand; if Golare wins → Äkta guess one Golare
+- [x] **LOOP-10**: Team size scales with player count (2 for 4-5, 3 for 6-8, 4 for 9-10)
 
 ### Engagement
 
@@ -101,23 +101,23 @@
 | INFRA-03 | Phase 1: Foundation | Complete |
 | INFRA-04 | Phase 1: Foundation | Complete |
 | INFRA-05 | Phase 4: AI Guzman | Pending |
-| INFRA-06 | Phase 3: Game Loop | Pending |
+| INFRA-06 | Phase 3: Game Loop | Complete |
 | SETUP-01 | Phase 1: Foundation | Complete |
 | SETUP-02 | Phase 2: Game Lobby | Complete |
 | SETUP-03 | Phase 2: Game Lobby | Complete |
 | SETUP-04 | Phase 2: Game Lobby | Complete |
 | SETUP-05 | Phase 2: Game Lobby | Complete |
 | SETUP-06 | Phase 2: Game Lobby | Complete |
-| LOOP-01 | Phase 3: Game Loop | Pending |
-| LOOP-02 | Phase 3: Game Loop | Pending |
-| LOOP-03 | Phase 3: Game Loop | Pending |
-| LOOP-04 | Phase 3: Game Loop | Pending |
-| LOOP-05 | Phase 3: Game Loop | Pending |
-| LOOP-06 | Phase 3: Game Loop | Pending |
-| LOOP-07 | Phase 3: Game Loop | Pending |
-| LOOP-08 | Phase 3: Game Loop | Pending |
-| LOOP-09 | Phase 3: Game Loop | Pending |
-| LOOP-10 | Phase 3: Game Loop | Pending |
+| LOOP-01 | Phase 3: Game Loop | Complete |
+| LOOP-02 | Phase 3: Game Loop | Complete |
+| LOOP-03 | Phase 3: Game Loop | Complete |
+| LOOP-04 | Phase 3: Game Loop | Complete |
+| LOOP-05 | Phase 3: Game Loop | Complete |
+| LOOP-06 | Phase 3: Game Loop | Complete |
+| LOOP-07 | Phase 3: Game Loop | Complete |
+| LOOP-08 | Phase 3: Game Loop | Complete |
+| LOOP-09 | Phase 3: Game Loop | Complete |
+| LOOP-10 | Phase 3: Game Loop | Complete |
 | ENGAGE-01 | Phase 5: Engagement | Pending |
 | ENGAGE-02 | Phase 5: Engagement | Pending |
 | ENGAGE-03 | Phase 5: Engagement | Pending |

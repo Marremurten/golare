@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Bot connects to Telegram, persists state in Supabase, and handles DM permissions
 - [x] **Phase 2: Game Lobby** - Players create games, receive secret roles via DM, and see rules
-- [ ] **Phase 3: Game Loop** - Complete 5-round daily cycle plays through with template messages
+- [x] **Phase 3: Game Loop** - Complete 5-round daily cycle plays through with template messages
 - [ ] **Phase 4: AI Guzman** - AI persona generates narratives, whispers, and reacts to group activity
 - [ ] **Phase 5: Engagement** - Anti-passivity mechanics keep every player active between events
 
@@ -60,10 +60,10 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 03-01-PLAN.md -- DB schema (rounds/votes/missions), types, CRUD, FSM, Croner scheduler, template messages
-- [ ] 03-02-PLAN.md -- Mission posting, Capo nomination UX, team voting with Kaos-mataren
-- [ ] 03-03-PLAN.md -- Mission execution (Sakra/Gola DMs), result reveal, win condition tracking
-- [ ] 03-04-PLAN.md -- Symmetrisk Sista Chansen, dramatic reveal sequence, end-of-game flow
+- [x] 03-01-PLAN.md -- DB schema (rounds/votes/missions), types, CRUD, FSM, Croner scheduler, template messages
+- [x] 03-02-PLAN.md -- Mission posting, Capo nomination UX, team voting with Kaos-mataren
+- [x] 03-03-PLAN.md -- Mission execution (Sakra/Gola DMs), result reveal, win condition tracking
+- [x] 03-04-PLAN.md -- Symmetrisk Sista Chansen, dramatic reveal sequence, end-of-game flow
 
 ### Phase 4: AI Guzman
 **Goal**: Guzman comes alive as an AI-driven persona -- generating unique mission narratives, dramatic result reveals, manipulative private whispers, and reactive gap-fill commentary -- with template fallbacks ensuring the game never breaks if OpenAI is unavailable.
@@ -93,6 +93,6 @@ Phases execute in numeric order: 1 --> 2 --> 3 --> 4 --> 5
 |-------|---------------|--------|-----------|
 | 1. Foundation | 3/3 | ✓ Complete | 2026-02-10 |
 | 2. Game Lobby | 3/3 | ✓ Complete | 2026-02-10 |
-| 3. Game Loop | 0/4 | In progress | - |
+| 3. Game Loop | 4/4 | ✓ Complete | 2026-02-10 |
 | 4. AI Guzman | 0/3 | Not started | - |
 | 5. Engagement | 0/2 | Not started | - |
