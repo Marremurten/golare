@@ -68,12 +68,12 @@ Plans:
 ### Phase 4: AI Guzman
 **Goal**: Guzman comes alive as an AI-driven persona -- generating unique mission narratives, dramatic result reveals, manipulative private whispers, and reactive gap-fill commentary -- with template fallbacks ensuring the game never breaks if OpenAI is unavailable.
 **Depends on**: Phase 3
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 04-01: OpenAI integration, prompt engineering, and template fallback system
-- [ ] 04-02: AI-generated missions and result narratives
-- [ ] 04-03: Viskningar (whisper DMs) and gap-fill commentary
+- [ ] 04-01-PLAN.md -- OpenAI client, Guzman persona prompts, AI generation module with template fallbacks, DB schema for narrative context and whispers
+- [ ] 04-02-PLAN.md -- AI-generated mission narratives and dramatic result reveals integrated into game loop
+- [ ] 04-03-PLAN.md -- Viskningar (whisper DMs) with scheduled + event triggers, gap-fill commentary
 
 ### Phase 5: Engagement
 **Goal**: Non-team players have meaningful actions every phase -- anonymous whispers, surveillance, and investigation -- plus anti-blowout mechanics and a dramatic role reveal at game end, making the async format engaging for every player every day.
@@ -94,5 +94,5 @@ Phases execute in numeric order: 1 --> 2 --> 3 --> 4 --> 5
 | 1. Foundation | 3/3 | ✓ Complete | 2026-02-10 |
 | 2. Game Lobby | 3/3 | ✓ Complete | 2026-02-10 |
 | 3. Game Loop | 4/4 | ✓ Complete | 2026-02-10 |
-| 4. AI Guzman | 0/3 | Not started | - |
+| 4. AI Guzman | 0/3 | In Progress | - |
 | 5. Engagement | 0/2 | Not started | - |
