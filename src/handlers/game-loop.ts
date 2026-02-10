@@ -55,7 +55,14 @@ import {
   getSistaChansenSide,
 } from "../lib/game-state.js";
 import { MESSAGES } from "../lib/messages.js";
+import {
+  generateMissionNarrative,
+  generateResultReveal,
+  updateNarrativeContext,
+  getGuzmanContext,
+} from "../lib/ai-guzman.js";
 import { getMessageQueue } from "../queue/message-queue.js";
+import { config } from "../config.js";
 import type { ScheduleHandlers } from "../lib/scheduler.js";
 
 // ---------------------------------------------------------------------------
@@ -272,6 +279,13 @@ async function initiateSistaChansen(
     return p.role === "akta";
   });
 
+  // DEV_MODE / 1-player: no one qualifies as guesser -- skip to final reveal
+  if (guessers.length === 0) {
+    console.log(`[game-loop] No guessers for Sista Chansen in game ${game.id}, skipping to final reveal`);
+    await performFinalReveal(bot, game, game.group_chat_id, null, winner);
+    return;
+  }
+
   // 3. Determine candidate targets: all players minus the guessers
   const guesserIdSet = new Set(guessers.map((g) => g.id));
   const candidates = players.filter((p) => !guesserIdSet.has(p.id));
@@ -401,13 +415,14 @@ async function performFinalReveal(
   originalWinner: "ligan" | "aina",
 ): Promise<void> {
   const queue = getMessageQueue();
+  const suspenseDelay = config.DEV_MODE ? 1_000 : 30_000;
 
   // Determine actual winner based on Sista Chansen result
   let finalWinner = originalWinner;
 
   // 1. Suspense message 1
   await queue.send(groupChatId, "...", { parse_mode: "HTML" });
-  await sleep(30_000);
+  await sleep(suspenseDelay);
 
   // 2. Suspense message 2
   await queue.send(
@@ -415,7 +430,7 @@ async function performFinalReveal(
     "Guzman räknar... kollar korten... 👀",
     { parse_mode: "HTML" },
   );
-  await sleep(30_000);
+  await sleep(suspenseDelay);
 
   // 3. Sista Chansen result reveal
   if (sistaChansen) {
@@ -445,7 +460,7 @@ async function performFinalReveal(
       { parse_mode: "HTML" },
     );
   }
-  await sleep(30_000);
+  await sleep(suspenseDelay);
 
   // 4. Full role reveal
   const players = await getGamePlayersOrderedWithInfo(game.id);
@@ -513,29 +528,50 @@ async function resolveExecution(
     aina_score: newAinaScore,
   });
 
-  // Send suspense messages
+  // Send suspense message (template -- short atmospheric pause)
   await queue.send(game.group_chat_id, MESSAGES.SUSPENSE_1, {
     parse_mode: "HTML",
   });
 
-  // Send result message
-  if (success) {
-    await queue.send(game.group_chat_id, MESSAGES.MISSION_SUCCESS, {
-      parse_mode: "HTML",
-    });
-  } else {
-    await queue.send(
-      game.group_chat_id,
-      MESSAGES.MISSION_FAIL(golaCount),
-      { parse_mode: "HTML" },
-    );
-  }
+  // AI-generated result reveal (falls back to template on failure)
+  const revealPlayers = await getGamePlayersOrderedWithInfo(game.id);
+  const revealPlayerNames = revealPlayers.map((p) => displayName(p.players));
+  const revealTeamNames = round.team_player_ids.map((id) => {
+    const gp = revealPlayers.find((p) => p.id === id);
+    return gp ? displayName(gp.players) : "Okänd";
+  });
+  const revealGuzmanCtx = await getGuzmanContext(game.id);
+  const revealText = await generateResultReveal(
+    round.round_number,
+    revealGuzmanCtx,
+    missionResult as "success" | "fail" | "kaos_fail",
+    golaCount,
+    revealPlayerNames,
+    revealTeamNames,
+  );
+
+  await queue.send(game.group_chat_id, revealText, {
+    parse_mode: "HTML",
+  });
 
   // Send score update
   await queue.send(
     game.group_chat_id,
     MESSAGES.SCORE_UPDATE(newLiganScore, newAinaScore, round.round_number),
     { parse_mode: "HTML" },
+  );
+
+  // Update narrative context for story continuity
+  const missionTheme = `Stöt ${round.round_number}`;
+  const narrativeBeats = success
+    ? "Team lyckades -- alla var lojala"
+    : `${golaCount} golade -- stöten saboterad`;
+  await updateNarrativeContext(
+    game.id,
+    round.round_number,
+    missionTheme,
+    missionResult as "success" | "fail" | "kaos_fail",
+    narrativeBeats,
   );
 
   // Check win condition
@@ -632,6 +668,15 @@ async function handleKaosFail(
     game.group_chat_id,
     MESSAGES.SCORE_UPDATE(game.ligan_score, newAinaScore, round.round_number),
     { parse_mode: "HTML" },
+  );
+
+  // Update narrative context for kaos-fail
+  await updateNarrativeContext(
+    game.id,
+    round.round_number,
+    `Stöt ${round.round_number}`,
+    "kaos_fail",
+    "Kaos-fail efter 3 nej -- gruppen kunde inte enas",
   );
 }
 
@@ -1400,10 +1445,19 @@ export function createScheduleHandlers(bot: Bot): ScheduleHandlers {
             continue;
           }
 
-          // Send mission post
+          // Send AI-generated mission narrative (falls back to template on failure)
+          const missionPlayers = await getGamePlayersOrderedWithInfo(game.id);
+          const missionPlayerNames = missionPlayers.map((p) => displayName(p.players));
+          const missionGuzmanCtx = await getGuzmanContext(game.id);
+          const missionText = await generateMissionNarrative(
+            round.round_number,
+            missionGuzmanCtx,
+            missionPlayerNames,
+          );
+
           await queue.send(
             game.group_chat_id,
-            MESSAGES.MISSION_POST(round.round_number),
+            missionText,
             { parse_mode: "HTML" },
           );
 
