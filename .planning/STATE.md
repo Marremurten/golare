@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** The social deduction experience -- paranoia, accusations, and bluffing between friends -- driven by an AI game master that actively stirs conflict and keeps every player engaged.
-**Current focus:** Phase 3: Game Loop (COMPLETE)
+**Current focus:** Phase 4: AI Guzman (IN PROGRESS)
 
 ## Current Position
 
-Phase: 3 of 5 (Game Loop) -- COMPLETE
-Plan: 4 of 4 in current phase (all done)
-Status: Phase Complete
-Last activity: 2026-02-10 -- Phase 3 Plan 04 (Sista Chansen, Final Reveal) complete.
+Phase: 4 of 5 (AI Guzman)
+Plan: 1 of 3 in current phase (1 done)
+Status: In Progress
+Last activity: 2026-02-10 -- Phase 4 Plan 01 (AI Foundation) complete.
 
-Progress: [========..] 71%
+Progress: [========..] 78%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
+- Total plans completed: 11
 - Average duration: 7min
-- Total execution time: 1.16 hours
+- Total execution time: 1.24 hours
 
 **By Phase:**
 
@@ -30,9 +30,10 @@ Progress: [========..] 71%
 | 01-foundation | 3/3 | 31min | 10min |
 | 02-game-lobby | 3/3 | 12min | 4min |
 | 03-game-loop | 4/4 | 26min | 6.5min |
+| 04-ai-guzman | 1/3 | 5min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 03-01 (7min), 03-02 (6min), 03-03 (4min), 03-04 (9min)
+- Last 5 plans: 03-02 (6min), 03-03 (4min), 03-04 (9min), 04-01 (5min)
 - Trend: consistent
 
 *Updated after each plan completion*
@@ -88,6 +89,11 @@ Recent decisions affecting current work:
 - In-memory Maps for Sista Chansen transient state (DM message IDs, timeouts, candidates) -- ephemeral, not DB
 - Candidates = all players minus guessers to prevent information leakage
 - Game stays active during Sista Chansen; transitions to finished only after performFinalReveal
+- Optional OPENAI_API_KEY -- game runs on templates when key is missing (graceful degradation)
+- gpt-4o-mini for narrative/whisper tiers, gpt-4.1-nano for commentary (cost optimization)
+- zodResponseFormat for structured whisper output (truth_level enum)
+- Narrative context compression: keep last 3 rounds detailed, drop beats for older rounds
+- client.chat.completions.parse() in OpenAI SDK v6 (not deprecated beta path)
 
 ### Pending Todos
 
@@ -102,5 +108,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Completed 03-04-PLAN.md (Sista Chansen, Final Reveal). Phase 3 (Game Loop) fully complete. Ready for Phase 4.
+Stopped at: Completed 04-01-PLAN.md (AI Foundation). Plans 02-03 remaining in Phase 4.
 Resume file: None
