@@ -96,13 +96,13 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | Phase 1: Foundation | Pending |
-| INFRA-02 | Phase 1: Foundation | Pending |
-| INFRA-03 | Phase 1: Foundation | Pending |
-| INFRA-04 | Phase 1: Foundation | Pending |
+| INFRA-01 | Phase 1: Foundation | Complete |
+| INFRA-02 | Phase 1: Foundation | Complete |
+| INFRA-03 | Phase 1: Foundation | Complete |
+| INFRA-04 | Phase 1: Foundation | Complete |
 | INFRA-05 | Phase 4: AI Guzman | Pending |
 | INFRA-06 | Phase 3: Game Loop | Pending |
-| SETUP-01 | Phase 1: Foundation | Pending |
+| SETUP-01 | Phase 1: Foundation | Complete |
 | SETUP-02 | Phase 2: Game Lobby | Pending |
 | SETUP-03 | Phase 2: Game Lobby | Pending |
 | SETUP-04 | Phase 2: Game Lobby | Pending |

@@ -12,7 +12,7 @@ Golare is an async Telegram social deduction game with an AI game master (Guzman
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - Bot connects to Telegram, persists state in Supabase, and handles DM permissions
+- [x] **Phase 1: Foundation** - Bot connects to Telegram, persists state in Supabase, and handles DM permissions
 - [ ] **Phase 2: Game Lobby** - Players create games, receive secret roles via DM, and see rules
 - [ ] **Phase 3: Game Loop** - Complete 5-round daily cycle plays through with template messages
 - [ ] **Phase 4: AI Guzman** - AI persona generates narratives, whispers, and reacts to group activity
@@ -32,9 +32,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md -- Project setup, grammY bot skeleton, Supabase schema + client, Swedish message templates
-- [ ] 01-02-PLAN.md -- Per-chat message queue with rate limiting, DM permission flow (deep links, callouts, reminders)
-- [ ] 01-03-PLAN.md -- /start command handler with deep link detection, bot wiring, end-to-end verification
+- [x] 01-01-PLAN.md -- Project setup, grammY bot skeleton, Supabase schema + client, Swedish message templates
+- [x] 01-02-PLAN.md -- Per-chat message queue with rate limiting, DM permission flow (deep links, callouts, reminders)
+- [x] 01-03-PLAN.md -- /start command handler with deep link detection, bot wiring, end-to-end verification
 
 ### Phase 2: Game Lobby
 **Goal**: An admin can start a game in a group, players join, roles are assigned secretly via DM with correct balancing, and all players can access rules and status at any time.
@@ -111,7 +111,7 @@ Phases execute in numeric order: 1 --> 2 --> 3 --> 4 --> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
-| 1. Foundation | 0/3 | Planning complete | - |
+| 1. Foundation | 3/3 | ✓ Complete | 2026-02-10 |
 | 2. Game Lobby | 0/3 | Not started | - |
 | 3. Game Loop | 0/4 | Not started | - |
 | 4. AI Guzman | 0/3 | Not started | - |
