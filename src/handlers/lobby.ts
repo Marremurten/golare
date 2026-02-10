@@ -10,10 +10,12 @@ import {
   getGamePlayers,
   getGamePlayersWithInfo,
   getPlayerByTelegramId,
+  setPlayerRole,
 } from "../db/client.js";
 import { MESSAGES } from "../lib/messages.js";
 import { getRandomError } from "../lib/errors.js";
 import { getMessageQueue } from "../queue/message-queue.js";
+import { assignRoles, ROLE_BALANCING } from "../lib/roles.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -317,10 +319,20 @@ lobbyHandler.callbackQuery(/^start:(.+)$/, async (ctx) => {
       return;
     }
 
-    // 4. Transition to active state
-    await updateGame(gameId, { state: "active" });
+    // 4. Assign roles
+    const playerIds = players.map((gp) => gp.player_id);
+    const assignments = assignRoles(playerIds);
+    const balancing = ROLE_BALANCING[players.length];
 
-    // 5. Edit lobby message to remove buttons
+    // 5. Transition to active state with team_size
+    await updateGame(gameId, { state: "active", team_size: balancing.teamSize });
+
+    // 6. Save roles to database
+    await Promise.all(
+      assignments.map((a) => setPlayerRole(gameId, a.playerId, a.role)),
+    );
+
+    // 7. Edit lobby message to remove buttons
     try {
       await ctx.editMessageText("Spelet har börjat! 🎬 Kolla era DMs, bre.", {
         parse_mode: "HTML",
@@ -329,11 +341,71 @@ lobbyHandler.callbackQuery(/^start:(.+)$/, async (ctx) => {
       if (!isMessageNotModifiedError(editErr)) throw editErr;
     }
 
-    // NOTE: Role assignment and DM delivery happens in Plan 02.
-    // For now, start just transitions state and updates the lobby message.
+    // 8. Build lookup maps for DMs
+    const playerInfoMap = new Map(
+      players.map((gp) => [gp.player_id, gp.players]),
+    );
+
+    const getDisplayName = (playerId: string): string => {
+      const info = playerInfoMap.get(playerId);
+      if (!info) return "Okänd";
+      if (info.username) return `@${info.username}`;
+      if (info.first_name) return info.first_name;
+      return "Okänd";
+    };
+
+    // Build list of Golare player IDs for the Golare identity reveal
+    const golareAssignments = assignments.filter((a) => a.role === "golare");
+
+    // 9. Send role DMs simultaneously via Promise.all
+    const queue = getMessageQueue();
+    const dmPromises = assignments.map((assignment) => {
+      const info = playerInfoMap.get(assignment.playerId);
+      if (!info) {
+        console.warn(
+          `[lobby] No player info for ${assignment.playerId}, skipping DM`,
+        );
+        return Promise.resolve();
+      }
+
+      let dmText: string;
+      switch (assignment.role) {
+        case "golare": {
+          const otherGolareNames = golareAssignments
+            .filter((g) => g.playerId !== assignment.playerId)
+            .map((g) => getDisplayName(g.playerId))
+            .join(", ");
+          dmText = MESSAGES.ROLE_REVEAL_GOLARE(otherGolareNames);
+          break;
+        }
+        case "hogra_hand":
+          dmText = MESSAGES.ROLE_REVEAL_HOGRA_HAND;
+          break;
+        case "akta":
+        default:
+          dmText = MESSAGES.ROLE_REVEAL_AKTA;
+          break;
+      }
+
+      return queue
+        .send(info.dm_chat_id, dmText, { parse_mode: "HTML" })
+        .catch((err) => {
+          console.error(
+            `[lobby] Failed to send role DM to player ${assignment.playerId} (chat ${info.dm_chat_id}):`,
+            err,
+          );
+        });
+    });
+
+    await Promise.all(dmPromises);
+
+    // 10. Send dramatic game start monologue to group
+    await queue.send(game.group_chat_id, MESSAGES.GAME_START_MONOLOGUE, {
+      parse_mode: "HTML",
+    });
 
     console.log(
-      `[lobby] Game ${gameId} started by user ${ctx.from.id}`,
+      `[lobby] Game ${gameId} started by user ${ctx.from.id} with ${players.length} players`,
     );
   } catch (error) {
     console.error("[lobby] start callback failed:", error);

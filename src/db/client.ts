@@ -6,6 +6,7 @@ import type {
   Game,
   GamePlayer,
   Player,
+  PlayerRole,
 } from "./types.js";
 import { config } from "../config.js";
 
@@ -232,4 +233,23 @@ export async function getGamePlayersWithInfo(
   }
 
   return (data ?? []) as Array<GamePlayer & { players: Player }>;
+}
+
+/**
+ * Set the role for a player in a game.
+ */
+export async function setPlayerRole(
+  game_id: string,
+  player_id: string,
+  role: PlayerRole,
+): Promise<void> {
+  const { error } = await supabase
+    .from("game_players")
+    .update({ role })
+    .eq("game_id", game_id)
+    .eq("player_id", player_id);
+
+  if (error) {
+    throw new Error(`setPlayerRole failed: ${error.message}`);
+  }
 }
