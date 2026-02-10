@@ -24,6 +24,10 @@ export const ROLE_BALANCING: Record<
   number,
   { golare: number; akta: number; teamSize: number }
 > = {
+  // Dev mode entries (1-3 players) -- only reachable when DEV_MODE=true
+  1: { golare: 0, akta: 1, teamSize: 1 },
+  2: { golare: 1, akta: 1, teamSize: 1 },
+  3: { golare: 1, akta: 2, teamSize: 1 },
   4: { golare: 1, akta: 3, teamSize: 2 },
   5: { golare: 1, akta: 4, teamSize: 2 },
   6: { golare: 2, akta: 4, teamSize: 3 },
@@ -69,9 +73,10 @@ export function assignRoles(playerIds: string[]): RoleAssignment[] {
   const count = playerIds.length;
   const balancing = ROLE_BALANCING[count];
 
-  if (!balancing) {
+  const minPlayers = process.env.DEV_MODE === "true" ? 1 : 4;
+  if (!balancing || count < minPlayers) {
     throw new Error(
-      `Invalid player count: ${count}. Must be between 4 and 10.`,
+      `Invalid player count: ${count}. Must be between ${minPlayers} and 10.`,
     );
   }
 

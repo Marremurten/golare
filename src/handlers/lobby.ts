@@ -21,7 +21,7 @@ import { assignRoles, ROLE_BALANCING } from "../lib/roles.js";
 // Constants
 // ---------------------------------------------------------------------------
 
-const MIN_PLAYERS = 4;
+const MIN_PLAYERS = process.env.DEV_MODE === "true" ? 1 : 4;
 const MAX_PLAYERS = 10;
 
 // ---------------------------------------------------------------------------
