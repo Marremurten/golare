@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** The social deduction experience -- paranoia, accusations, and bluffing between friends -- driven by an AI game master that actively stirs conflict and keeps every player engaged.
-**Current focus:** Phase 4: AI Guzman (IN PROGRESS)
+**Current focus:** Phase 4: AI Guzman (COMPLETE)
 
 ## Current Position
 
 Phase: 4 of 5 (AI Guzman)
-Plan: 2 of 3 in current phase (2 done)
-Status: In Progress
-Last activity: 2026-02-10 -- Phase 4 Plan 02 (AI Game Loop Integration) complete.
+Plan: 3 of 3 in current phase (3 done)
+Status: Complete
+Last activity: 2026-02-10 -- Phase 4 Plan 03 (Whispers & Gap-fill) complete. Phase 4 done.
 
-Progress: [=========.] 85%
+Progress: [=========.] 93%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Average duration: 7min
-- Total execution time: 1.29 hours
+- Total plans completed: 13
+- Average duration: 6min
+- Total execution time: 1.36 hours
 
 **By Phase:**
 
@@ -30,10 +30,10 @@ Progress: [=========.] 85%
 | 01-foundation | 3/3 | 31min | 10min |
 | 02-game-lobby | 3/3 | 12min | 4min |
 | 03-game-loop | 4/4 | 26min | 6.5min |
-| 04-ai-guzman | 2/3 | 8min | 4min |
+| 04-ai-guzman | 3/3 | 12min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 03-03 (4min), 03-04 (9min), 04-01 (5min), 04-02 (3min)
+- Last 5 plans: 03-04 (9min), 04-01 (5min), 04-02 (3min), 04-03 (4min)
 - Trend: consistent, accelerating
 
 *Updated after each plan completion*
@@ -97,6 +97,10 @@ Recent decisions affecting current work:
 - SUSPENSE_1 kept as static template before AI reveal -- short atmospheric pause doesn't benefit from AI generation
 - Narrative context updated on kaos-fail path too -- story arc tracks all round outcomes for continuity
 - Math.random for template variant selection -- non-security-critical, crypto not needed
+- Fire-and-forget pattern for event whispers (triggerEventWhisper().catch()) -- non-blocking
+- Quiet threshold: < 2 messages in 2 hours during 09:00-21:00 for gap-fill trigger
+- GameLoopScheduleHandlers Omit type to separate game-loop and whisper handler returns
+- Combined schedule handlers in bot.ts via spread operator (game-loop + whisper)
 
 ### Pending Todos
 
@@ -111,5 +115,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Completed 04-02-PLAN.md (AI Game Loop Integration). Plan 03 remaining in Phase 4.
+Stopped at: Completed 04-03-PLAN.md (Whispers & Gap-fill). Phase 4 complete. Ready for Phase 5.
 Resume file: None
