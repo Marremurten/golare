@@ -1,7 +1,14 @@
-import { Composer } from "grammy";
-import { getActiveGame, updateGame } from "../db/client.js";
+import { Composer, InlineKeyboard } from "grammy";
+import {
+  getActiveGame,
+  updateGame,
+  getPlayerByTelegramId,
+  getGamePlayersWithInfo,
+  getPlayerActiveGame,
+} from "../db/client.js";
 import { MESSAGES } from "../lib/messages.js";
 import { getMessageQueue } from "../queue/message-queue.js";
+import type { PlayerRole } from "../db/types.js";
 
 // ---------------------------------------------------------------------------
 // Game commands handler (Composer)
@@ -66,3 +73,207 @@ gameCommandsHandler
       await ctx.reply("Något gick fel, bre. Försök igen. 🔧");
     }
   });
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+type RulesPage = "roller" | "spelgang" | "vinst";
+
+const RULES_PAGES: RulesPage[] = ["roller", "spelgang", "vinst"];
+
+const RULES_PAGE_LABELS: Record<RulesPage, string> = {
+  roller: "Roller",
+  spelgang: "Spelgång",
+  vinst: "Vinst",
+};
+
+/**
+ * Build the inline keyboard for rules page navigation.
+ * The current page label is wrapped with markers.
+ */
+function buildRulesKeyboard(currentPage: RulesPage): InlineKeyboard {
+  const kb = new InlineKeyboard();
+  for (const page of RULES_PAGES) {
+    const label =
+      page === currentPage
+        ? `» ${RULES_PAGE_LABELS[page]} «`
+        : RULES_PAGE_LABELS[page];
+    kb.text(label, `rules:${page}`);
+  }
+  return kb;
+}
+
+/**
+ * Map game states to Swedish display names.
+ */
+function getStateDisplayName(state: string): string {
+  switch (state) {
+    case "lobby":
+      return "Lobby (väntar på spelare)";
+    case "active":
+      return "Pågår";
+    case "finished":
+      return "Avslutat";
+    case "cancelled":
+      return "Avbrutet";
+    default:
+      return state;
+  }
+}
+
+/**
+ * Map roles to display info for DM /status.
+ */
+function getRoleDisplayInfo(
+  role: PlayerRole,
+): { name: string; abilities: string } {
+  switch (role) {
+    case "akta":
+      return { name: "Äkta", abilities: "Inga specialförmågor" };
+    case "golare":
+      return { name: "Golare", abilities: "Vet vilka andra Golare är" };
+    case "hogra_hand":
+      return {
+        name: "Guzmans Högra Hand",
+        abilities: "Spaning (kolla en spelares roll)",
+      };
+  }
+}
+
+/**
+ * Check if an error is the benign "message is not modified" Telegram error.
+ */
+function isMessageNotModifiedError(err: unknown): boolean {
+  if (err && typeof err === "object" && "description" in err) {
+    return String((err as { description: string }).description).includes(
+      "message is not modified",
+    );
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------------------
+// /regler -- paginated rules display (works in group AND DM)
+// ---------------------------------------------------------------------------
+
+gameCommandsHandler.command("regler", async (ctx) => {
+  try {
+    const text = MESSAGES.RULES_PAGE("roller");
+    const keyboard = buildRulesKeyboard("roller");
+    await ctx.reply(text, { reply_markup: keyboard, parse_mode: "HTML" });
+  } catch (error) {
+    console.error("[game-commands] /regler failed:", error);
+    await ctx.reply("Något gick fel, bre. Försök igen. 🔧");
+  }
+});
+
+// ---------------------------------------------------------------------------
+// rules:{page} callback -- navigate between rules pages
+// ---------------------------------------------------------------------------
+
+gameCommandsHandler.callbackQuery(/^rules:(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+
+  try {
+    const page = ctx.match[1] as string;
+
+    // Validate page is a known rules page
+    if (!RULES_PAGES.includes(page as RulesPage)) return;
+
+    const validPage = page as RulesPage;
+    const text = MESSAGES.RULES_PAGE(validPage);
+    const keyboard = buildRulesKeyboard(validPage);
+
+    try {
+      await ctx.editMessageText(text, {
+        reply_markup: keyboard,
+        parse_mode: "HTML",
+      });
+    } catch (editErr) {
+      if (!isMessageNotModifiedError(editErr)) throw editErr;
+    }
+  } catch (error) {
+    console.error("[game-commands] rules callback failed:", error);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// /status -- show game status (works in group AND DM)
+// ---------------------------------------------------------------------------
+
+gameCommandsHandler.command("status", async (ctx) => {
+  if (!ctx.from) return;
+
+  try {
+    const isPrivate = ctx.chat.type === "private";
+
+    if (!isPrivate) {
+      // --- Group chat: look up active game by group_chat_id ---
+      const game = await getActiveGame(ctx.chat.id);
+      if (!game) {
+        await ctx.reply(MESSAGES.STATUS_NO_GAME_GROUP);
+        return;
+      }
+
+      const players = await getGamePlayersWithInfo(game.id);
+      const playerList = players.map((gp) => ({
+        name: gp.players.username
+          ? `@${gp.players.username}`
+          : gp.players.first_name || "Okänd",
+      }));
+
+      const statusText = MESSAGES.STATUS_TEXT({
+        liganScore: game.ligan_score,
+        ainaScore: game.aina_score,
+        round: game.round,
+        totalRounds: 5,
+        state: getStateDisplayName(game.state),
+        players: playerList,
+      });
+
+      await ctx.reply(statusText, { parse_mode: "HTML" });
+    } else {
+      // --- DM: find the player's active game ---
+      const player = await getPlayerByTelegramId(ctx.from.id);
+      if (!player) {
+        await ctx.reply(MESSAGES.STATUS_NO_GAME_DM);
+        return;
+      }
+
+      const result = await getPlayerActiveGame(player.id);
+      if (!result) {
+        await ctx.reply(MESSAGES.STATUS_NO_GAME_DM);
+        return;
+      }
+
+      const { game, gamePlayer } = result;
+      const players = await getGamePlayersWithInfo(game.id);
+      const playerList = players.map((gp) => ({
+        name: gp.players.username
+          ? `@${gp.players.username}`
+          : gp.players.first_name || "Okänd",
+      }));
+
+      let statusText = MESSAGES.STATUS_TEXT({
+        liganScore: game.ligan_score,
+        ainaScore: game.aina_score,
+        round: game.round,
+        totalRounds: 5,
+        state: getStateDisplayName(game.state),
+        players: playerList,
+      });
+
+      // Append role info if assigned
+      if (gamePlayer.role) {
+        const info = getRoleDisplayInfo(gamePlayer.role);
+        statusText += MESSAGES.STATUS_DM_EXTRA(info.name, info.abilities);
+      }
+
+      await ctx.reply(statusText, { parse_mode: "HTML" });
+    }
+  } catch (error) {
+    console.error("[game-commands] /status failed:", error);
+    await ctx.reply("Något gick fel, bre. Försök igen. 🔧");
+  }
+});

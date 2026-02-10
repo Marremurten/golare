@@ -253,3 +253,46 @@ export async function setPlayerRole(
     throw new Error(`setPlayerRole failed: ${error.message}`);
   }
 }
+
+/**
+ * Find the active game a player is currently in.
+ * Returns the Game if found, null otherwise.
+ * Assumes one active game per player (Phase 2 constraint).
+ */
+export async function getPlayerActiveGame(
+  player_id: string,
+): Promise<{ game: Game; gamePlayer: GamePlayer } | null> {
+  // Get all game_player entries for this player with joined game data
+  const { data, error } = await supabase
+    .from("game_players")
+    .select("*, games(*)")
+    .eq("player_id", player_id);
+
+  if (error) {
+    throw new Error(`getPlayerActiveGame failed: ${error.message}`);
+  }
+
+  if (!data || data.length === 0) return null;
+
+  // Type assertion needed: Supabase v2.95 resolves joined select as {}
+  const rows = data as unknown as Array<GamePlayer & { games: Game | null }>;
+
+  // Find the entry with an active (lobby or active) game
+  for (const row of rows) {
+    const game = row.games;
+    if (game && game.state !== "finished" && game.state !== "cancelled") {
+      return {
+        game,
+        gamePlayer: {
+          id: row.id,
+          game_id: row.game_id,
+          player_id: row.player_id,
+          role: row.role,
+          joined_at: row.joined_at,
+        },
+      };
+    }
+  }
+
+  return null;
+}

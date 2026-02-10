@@ -18,7 +18,7 @@ import {
  */
 export const startHandler = new Composer();
 
-const rulesKeyboard = new InlineKeyboard().text("Regler \u{1F4D6}", "show_rules");
+const rulesKeyboard = new InlineKeyboard().text("Regler \u{1F4D6}", "rules:roller");
 
 startHandler.command("start", async (ctx) => {
   // Only handle /start in private chats
@@ -88,8 +88,5 @@ startHandler.command("start", async (ctx) => {
   }
 });
 
-// --- Handle "Regler" inline button ---
-startHandler.callbackQuery("show_rules", async (ctx) => {
-  await ctx.answerCallbackQuery();
-  await ctx.reply("Reglerna kommer snart, bre! \u{1F51C}");
-});
+// "Regler" button now uses "rules:roller" callback data,
+// handled by gameCommandsHandler's rules:* callback pattern.
