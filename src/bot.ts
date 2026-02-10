@@ -6,6 +6,12 @@ import { createMessageQueue } from "./queue/message-queue.js";
 import { startHandler } from "./handlers/start.js";
 import { lobbyHandler } from "./handlers/lobby.js";
 import { gameCommandsHandler } from "./handlers/game-commands.js";
+import {
+  startScheduler,
+  stopScheduler,
+  recoverMissedEvents,
+} from "./lib/scheduler.js";
+import type { ScheduleHandlers } from "./lib/scheduler.js";
 
 // 1. Create bot instance
 export const bot = new Bot(config.BOT_TOKEN);
@@ -22,24 +28,57 @@ bot.use(startHandler);
 bot.use(lobbyHandler);
 bot.use(gameCommandsHandler);
 
-// 5. Global error handler
+// 5. Scheduler -- placeholder handlers that log events (real logic in later plans)
+const scheduleHandlers: ScheduleHandlers = {
+  onMissionPost: async () => {
+    console.log("[scheduler] onMissionPost triggered");
+  },
+  onNominationReminder: async () => {
+    console.log("[scheduler] onNominationReminder triggered");
+  },
+  onNominationDeadline: async () => {
+    console.log("[scheduler] onNominationDeadline triggered");
+  },
+  onVotingReminder: async () => {
+    console.log("[scheduler] onVotingReminder triggered");
+  },
+  onVotingDeadline: async () => {
+    console.log("[scheduler] onVotingDeadline triggered");
+  },
+  onExecutionReminder: async () => {
+    console.log("[scheduler] onExecutionReminder triggered");
+  },
+  onExecutionDeadline: async () => {
+    console.log("[scheduler] onExecutionDeadline triggered");
+  },
+  onResultReveal: async () => {
+    console.log("[scheduler] onResultReveal triggered");
+  },
+};
+
+startScheduler(scheduleHandlers);
+
+// 6. Global error handler
 bot.catch((err) => {
   console.error("Bot error:", err.message);
   console.error("Context:", err.ctx?.update?.update_id);
 });
 
-// 6. Graceful shutdown
+// 7. Graceful shutdown
 const shutdown = () => {
   console.log("Shutting down...");
+  stopScheduler();
   bot.stop();
 };
 process.once("SIGINT", shutdown);
 process.once("SIGTERM", shutdown);
 
-// 7. Start the bot with long polling
+// 8. Start the bot with long polling
 await bot.start({
-  onStart: () => {
+  onStart: async () => {
     console.log("Golare bot startad!");
     console.log(`Bot username: @${bot.botInfo.username}`);
+    // Recover any missed scheduler events after restart
+    await recoverMissedEvents(scheduleHandlers);
   },
 });

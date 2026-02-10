@@ -279,4 +279,253 @@ export const MESSAGES = {
   /** Extra DM info showing player's secret role and abilities */
   STATUS_DM_EXTRA: (role: string, abilities: string): string =>
     `\n\n<b>🔒 Din roll:</b> ${role}\n<b>Förmågor:</b> ${abilities}`,
+
+  // -------------------------------------------------------------------------
+  // Game loop messages (Phase 3)
+  // -------------------------------------------------------------------------
+
+  /** Morning mission post -- kicks off the round */
+  MISSION_POST: (roundNumber: number): string =>
+    `<b>Ligan! Runda ${roundNumber}.</b> 🎯\n\n` +
+    "Det är dags för en ny stöt, bre. Vi har ett jobb att göra " +
+    "och jag behöver folk jag kan lita på.\n\n" +
+    "Dagens <b>Capo</b> väljer sitt team. Sen röstar ni andra " +
+    "om ni litar på valet. Gör rätt val -- det är era pengar " +
+    "som står på spel. 💰",
+
+  /** DM to Capo: pick your team */
+  NOMINATION_PROMPT: (capoName: string, teamSize: number): string =>
+    `Yo <b>${capoName}</b>, du är <b>Capo</b> den här rundan. 👑\n\n` +
+    `Välj <b>${teamSize}</b> spelare till ditt team. ` +
+    "Tryck på namnen nedan för att toggla, sen bekräfta.\n\n" +
+    "Välj klokt, bre. Alla kollar på dig.",
+
+  /** Group reminder 1h before nomination deadline */
+  NOMINATION_REMINDER: (capoName: string): string =>
+    `Yo ${capoName}, du har <b>en timme</b> kvar att välja ditt team, bre. ` +
+    "Stressa inte -- men stressa lite. ⏰",
+
+  /** DM reminder to Capo 1h before nomination deadline */
+  NOMINATION_REMINDER_DM: (capoName: string): string =>
+    `${capoName}, shuno -- du har fortfarande inte valt ditt team. ` +
+    "En timme kvar. Gör ditt val nu, bre. ⏰",
+
+  /** Group message when Capo didn't nominate in time */
+  NOMINATION_TIMEOUT: (oldCapo: string, newCapo: string): string =>
+    `${oldCapo} somnade vid ratten. 😴 Ingen nomination, ingen respekt.\n\n` +
+    `Det räknas som en missad röstning. <b>${newCapo}</b> tar över som Capo nu. ` +
+    "Hoppas du kan bättre, bre.",
+
+  /** Group message showing proposed team */
+  TEAM_PROPOSED: (capoName: string, teamNames: string[]): string =>
+    `<b>${capoName}</b> har valt sitt team: 🎯\n\n` +
+    teamNames.map((n) => `  - ${n}`).join("\n") +
+    "\n\nLitar ni på det här valet? Dags att rösta.",
+
+  /** Group message prompting everyone to vote */
+  VOTE_PROMPT: (teamNames: string[]): string =>
+    "<b>Röstning!</b> 🗳️\n\n" +
+    `Team: ${teamNames.join(", ")}\n\n` +
+    "Rösta <b>JA</b> om ni litar på teamet, " +
+    "eller <b>NEJ</b> om ni inte gör det.\n\n" +
+    "Alla röster avslöjas efteråt -- så tänk efter, bre.",
+
+  /** Live tally (edited message) -- shows WHO voted but not HOW */
+  VOTE_TALLY: (votedNames: string[], total: number): string => {
+    const voterList = votedNames.length > 0
+      ? votedNames.map((n) => `  [x] ${n}`).join("\n")
+      : "  Inga röster ännu...";
+    return (
+      `<b>Röstat:</b> ${votedNames.length}/${total} 🗳️\n\n` +
+      voterList
+    );
+  },
+
+  /** Full vote reveal after deadline */
+  VOTE_REVEAL: (votes: Array<{ name: string; vote: string }>): string => {
+    const lines = votes.map(
+      (v) => `  ${v.vote === "ja" ? "👍" : "👎"} ${v.name}: <b>${v.vote.toUpperCase()}</b>`,
+    );
+    return "<b>Röstresultat:</b>\n\n" + lines.join("\n");
+  },
+
+  /** Vote passed -- team approved */
+  VOTE_APPROVED: (teamNames: string[]): string =>
+    "<b>Godkänt!</b> ✅\n\n" +
+    `Teamet ${teamNames.join(", ")} går in på stöten.\n\n` +
+    "Nu gäller det, bre. Kolla era DMs -- det är dags att agera. 🎬",
+
+  /** Vote rejected -- rotate Capo */
+  VOTE_REJECTED: (nejCount: number, newCapo: string, failedVoteNum: number): string =>
+    `<b>Nekat!</b> ❌ ${nejCount} röstade NEJ.\n\n` +
+    `Det var röstning nummer ${failedVoteNum} som failade i den här rundan.\n` +
+    `<b>${newCapo}</b> blir nästa Capo. Nytt försök, bre.`,
+
+  /** Kaos-mataren escalation: first failed vote */
+  KAOS_WARNING_1:
+    "En röstning failade... det börjar lukta para i gruppen, bre. 😒\n" +
+    "Ni behöver komma överens snart.",
+
+  /** Kaos-mataren escalation: second failed vote */
+  KAOS_WARNING_2:
+    "Två röstningar failade i rad nu. <b>En till och det blir KAOS.</b> 💥\n" +
+    "Jag börjar tappa tålamodet, shuno. Fixa det HÄR.",
+
+  /** Kaos-mataren triggered: three failed votes = auto-fail */
+  KAOS_TRIGGERED:
+    "<b>KAOS!</b> 💥💥💥\n\n" +
+    "Tre röstningar i rad och ni kunde inte enas om ETT team?! " +
+    "Aina tar den här poängen gratis, bre.\n\n" +
+    "Uppdraget misslyckas automatiskt. " +
+    "Ni borde skämmas. Golare sitter och skrattar åt er. 🐀",
+
+  /** DM to team members: choose Säkra or Gola */
+  EXECUTION_PROMPT: (roundNumber: number): string =>
+    `<b>Runda ${roundNumber} -- Stöten</b> 🎯\n\n` +
+    "Du är med på teamet. Nu gäller det.\n\n" +
+    "Välj:\n" +
+    "  <b>Säkra</b> -- Genomför uppdraget lojalt\n" +
+    "  <b>Gola</b> -- Sabotera uppdraget\n\n" +
+    "Ingen ser vad du väljer. Bara resultatet avslöjas. 🤫",
+
+  /** DM reminder to team member who hasn't acted */
+  EXECUTION_REMINDER: (playerName: string): string =>
+    `${playerName}, bre -- du har fortfarande inte gjort ditt val på stöten. ` +
+    "En timme kvar. Välj Säkra eller Gola NU. ⏰",
+
+  /** Group reminder about a team member who hasn't acted */
+  EXECUTION_REMINDER_GROUP: (playerName: string): string =>
+    `Väntar fortfarande på att <b>${playerName}</b> ska agera på stöten... ⏳`,
+
+  /** DM notification when execution defaults to Säkra */
+  EXECUTION_DEFAULT:
+    "Du valde inte i tid. Uppdraget genomfördes lojalt åt dig (Säkra). ✅\n" +
+    "Nästa gång -- gör ditt eget val, bre.",
+
+  /** Mission success -- no Golare sabotaged */
+  MISSION_SUCCESS:
+    "<b>Stöten lyckades!</b> ✅\n\n" +
+    "Alla var lojala -- eller så var Golare för fega att agera. " +
+    "Ligan tar poängen! 💰",
+
+  /** Mission failed -- at least one Gola */
+  MISSION_FAIL: (golaCount: number): string =>
+    "<b>Stöten misslyckades!</b> ❌\n\n" +
+    `${golaCount} ${golaCount === 1 ? "person golade" : "personer golade"}. ` +
+    "Det finns råttor bland oss, bre. 🐀\n" +
+    "Aina tar poängen.",
+
+  /** Score update after each round */
+  SCORE_UPDATE: (liganScore: number, ainaScore: number, roundNumber: number): string =>
+    `<b>Ställning efter runda ${roundNumber}:</b>\n\n` +
+    `  Ligan: ${liganScore} 💰\n` +
+    `  Aina: ${ainaScore} 🔵\n\n` +
+    `Först till 3 vinner. ${5 - roundNumber > 0 ? `${5 - roundNumber} rundor kvar.` : "Sista rundan spelad."}`,
+
+  /** Transition between rounds */
+  ROUND_END: (roundNumber: number): string =>
+    `Runda ${roundNumber} är över. 🔄\n\n` +
+    "Vila upp er, snacka skit, peka finger. " +
+    "Nästa runda väntar imorgon kl 09:00, bre.",
+
+  /** Ligan wins the game (3 successful missions) */
+  GAME_WON_LIGAN: (liganScore: number, ainaScore: number): string =>
+    `<b>LIGAN VINNER!</b> 🏆💰\n\n` +
+    `Slutställning: Ligan ${liganScore} - ${ainaScore} Aina\n\n` +
+    "Familjen höll ihop! Tre lyckade stötar och verksamheten rullar vidare.\n\n" +
+    "Men vänta... det kanske inte är över ännu. 👀",
+
+  /** Aina wins the game (3 failed missions) */
+  GAME_WON_AINA: (liganScore: number, ainaScore: number): string =>
+    `<b>AINA VINNER!</b> 🔵🐀\n\n` +
+    `Slutställning: Ligan ${liganScore} - ${ainaScore} Aina\n\n` +
+    "Golarna gjorde sitt jobb. Tre saboterade stötar -- Ligan är körd.\n\n" +
+    "Men vänta... det kanske inte är över ännu. 👀",
+
+  /** Sista Chansen intro -- posted to group */
+  SISTA_CHANSEN_INTRO: (guessingSide: string): string => {
+    const sideText = guessingSide === "golare"
+      ? "<b>Golare</b> -- ni har EN chans att peka ut <b>Guzmans Högra Hand</b>. " +
+        "Gissar ni rätt stjäl ni vinsten från Ligan!"
+      : "<b>Äkta</b> -- ni har EN chans att peka ut <b>en Golare</b>. " +
+        "Gissar ni rätt tar ni tillbaka vinsten!";
+
+    return (
+      "<b>SISTA CHANSEN!</b> 🎲\n\n" +
+      `${sideText}\n\n` +
+      "Kolla era DMs -- ni har 2 timmar. Första gissningen gäller. " +
+      "Välj klokt, bre."
+    );
+  },
+
+  /** DM to guessing team members */
+  SISTA_CHANSEN_DM: (targetDescription: string, playerNames: string[]): string =>
+    `<b>Sista Chansen!</b> 🎲\n\n` +
+    `Ni ska peka ut ${targetDescription}.\n\n` +
+    "Diskutera med ditt lag och välj en spelare nedan.\n" +
+    "<b>OBS:</b> Första gissningen som skickas gäller -- " +
+    "så snacka ihop er först!\n\n" +
+    "Kandidater:\n" +
+    playerNames.map((n) => `  - ${n}`).join("\n"),
+
+  /** Group announcement when someone makes the Sista Chansen guess */
+  SISTA_CHANSEN_GUESS_MADE: (guesserName: string, targetName: string): string =>
+    `<b>${guesserName}</b> har gjort sitt val: <b>${targetName}</b>. 🎯\n\n` +
+    "Rätt eller fel? Vi får se...",
+
+  /** Sista Chansen guess was correct -- winner changes! */
+  SISTA_CHANSEN_CORRECT: (winningSide: string): string =>
+    `<b>RÄTT GISSNING!</b> 🎉🎉🎉\n\n` +
+    `Gissningen stämde! <b>${winningSide}</b> stjäl vinsten!\n\n` +
+    "Vilken plot twist, bre. Ingen såg det komma. 🔥",
+
+  /** Sista Chansen guess was wrong -- original winner stays */
+  SISTA_CHANSEN_WRONG: (winningSide: string): string =>
+    "<b>FEL GISSNING!</b> ❌\n\n" +
+    `Tyvärr, det var fel. <b>${winningSide}</b> vinner ändå!\n\n` +
+    "Bättre lycka nästa gång, bre. 💀",
+
+  /** Sista Chansen timed out -- no guess made */
+  SISTA_CHANSEN_TIMEOUT: (winningSide: string): string =>
+    "<b>Tiden är ute!</b> ⏰\n\n" +
+    "Ingen gissning gjordes. Chansen är borta.\n" +
+    `<b>${winningSide}</b> vinner som planerat.\n\n` +
+    "Ni hade er chans, bre. Ni blåste den. 💨",
+
+  /** Final role reveal at the end of the game */
+  FINAL_REVEAL: (roles: Array<{ name: string; role: string }>): string => {
+    const lines = roles.map((r) => {
+      const emoji = r.role === "golare" ? "🐀" : r.role === "hogra_hand" ? "🔍" : "👤";
+      const roleName = r.role === "golare"
+        ? "Golare"
+        : r.role === "hogra_hand"
+          ? "Guzmans Högra Hand"
+          : "Äkta";
+      return `  ${emoji} <b>${r.name}</b> -- ${roleName}`;
+    });
+
+    return (
+      "<b>🎭 ROLLERNA AVSLÖJAS</b>\n\n" +
+      "Nu kan ni se vilka som var vilka, bre:\n\n" +
+      lines.join("\n") +
+      "\n\nSpelet är slut. GG, familjen. 🤝"
+    );
+  },
+
+  /** Group reminder for a player who hasn't voted */
+  VOTE_REMINDER: (voterName: string): string =>
+    `Yo <b>${voterName}</b>, du har inte röstat ännu! En timme kvar, bre. ⏰`,
+
+  /** DM reminder for a player who hasn't voted */
+  VOTE_REMINDER_DM: (voterName: string): string =>
+    `${voterName} -- du har fortfarande inte röstat i gruppen. ` +
+    "En timme kvar. Rösta JA eller NEJ nu, bre. ⏰",
+
+  /** Suspense message 1 (before result reveal) */
+  SUSPENSE_1:
+    "Resultaten är inne... 🤔\n\n" +
+    "Ge mig en sekund, bre.",
+
+  /** Suspense message 2 (before result reveal) */
+  SUSPENSE_2: "Okej... 👀",
 } as const;

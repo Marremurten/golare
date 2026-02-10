@@ -39,6 +39,15 @@ export const ERROR_MESSAGES = {
     "Aah, lobbyn buggade. Ge det en sekund och testa igen, bre. 🐛",
     "Shuno, det blev lite strul med spelgrejen. Försök igen snart. ⚡",
   ],
+
+  /** When game loop operations fail (rounds, voting, missions) */
+  GAME_LOOP_ERROR: [
+    "Bre, det blev strul med spelrundan. Vi fixar det, lugn. 🔧",
+    "Yo, nånting gick snett med röstningen. Testa igen, shuno. 🗳️",
+    "Aah, stöten buggade till sig. Ge det en sekund, bre. 💥",
+    "Shuno, det strulade med rundan. Försök igen om en stund. ⚡",
+    "Det hände nåt konstigt med spelet, bre. Vi löser det. Lugn. 🔄",
+  ],
 } as const;
 
 /** Error type keys */
