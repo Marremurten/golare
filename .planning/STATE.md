@@ -10,27 +10,27 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 ## Current Position
 
 Phase: 1 of 5 (Foundation)
-Plan: 0 of 3 in current phase
-Status: Ready to plan
-Last activity: 2026-02-10 -- Roadmap created, 36 requirements mapped across 5 phases
+Plan: 1 of 3 in current phase
+Status: Executing
+Last activity: 2026-02-10 -- Completed 01-01-PLAN.md (Project initialization, bot skeleton, DB schema, message templates)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [==........] 7%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: -
-- Total execution time: 0 hours
+- Total plans completed: 1
+- Average duration: 7min
+- Total execution time: 0.12 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-foundation | 1/3 | 7min | 7min |
 
 **Recent Trend:**
-- Last 5 plans: -
+- Last 5 plans: 01-01 (7min)
 - Trend: -
 
 *Updated after each plan completion*
@@ -47,6 +47,8 @@ Recent decisions affecting current work:
 - Template fallbacks before AI (game must never block on OpenAI failure)
 - Message queue is foundational (Telegram 20 msg/min per group rate limit)
 - Custom FSM over XState (8 linear states, zero-dependency)
+- Use type aliases instead of interfaces for Supabase Database types (interfaces lack implicit index signatures needed by Supabase generics)
+- Type assertions on .select('*') return values (Supabase v2.95 resolves select() as {} without column-level type inference)
 
 ### Pending Todos
 
@@ -61,5 +63,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-10
-Stopped at: Roadmap created with 5 phases, 15 plans total. Ready to plan Phase 1.
+Stopped at: Completed 01-01-PLAN.md
 Resume file: None
