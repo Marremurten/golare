@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** The social deduction experience -- paranoia, accusations, and bluffing between friends -- driven by an AI game master that actively stirs conflict and keeps every player engaged.
-**Current focus:** Phase 5: Engagement (IN PROGRESS)
+**Current focus:** Phase 5: Engagement (COMPLETE)
 
 ## Current Position
 
 Phase: 5 of 5 (Engagement)
-Plan: 1 of 2 in current phase (1 done)
-Status: In Progress
-Last activity: 2026-02-11 -- Phase 5 Plan 01 (Whispers & Surveillance) complete.
+Plan: 2 of 2 in current phase (2 done)
+Status: Complete
+Last activity: 2026-02-11 -- Phase 5 Plan 02 (Spaning, Double Scoring, Role Reveal) complete.
 
-Progress: [=========.] 95%
+Progress: [==========] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
+- Total plans completed: 15
 - Average duration: 6min
-- Total execution time: 1.44 hours
+- Total execution time: 1.52 hours
 
 **By Phase:**
 
@@ -31,10 +31,10 @@ Progress: [=========.] 95%
 | 02-game-lobby | 3/3 | 12min | 4min |
 | 03-game-loop | 4/4 | 26min | 6.5min |
 | 04-ai-guzman | 3/3 | 12min | 4min |
-| 05-engagement | 1/2 | 5min | 5min |
+| 05-engagement | 2/2 | 10min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 04-01 (5min), 04-02 (3min), 04-03 (4min), 05-01 (5min)
+- Last 5 plans: 04-02 (3min), 04-03 (4min), 05-01 (5min), 05-02 (5min)
 - Trend: consistent, ~4-5min per plan
 
 *Updated after each plan completion*
@@ -108,6 +108,14 @@ Recent decisions affecting current work:
 - 40% surveillance target notification chance using node:crypto randomInt
 - Whisper relay uses narrative tier (gpt-4o-mini); surveillance clue uses commentary tier (gpt-4.1-nano)
 - Role hints in anonymous whisper relay are Guzman-flavored cryptic hints, never direct role reveals
+- 75% truthful threshold for Akta Spaning using node:crypto randomInt (same module as existing patterns)
+- Hogra Hand Spaning always 100% truthful with direct presentation
+- gpt-4o-mini for Akta Spaning (needs nuance), gpt-4.1-nano for Hogra Hand and role reveals (simple/cheap)
+- ATOMIC INSERT with catch for one-per-game Spaning enforcement (same pattern as Sista Chansen)
+- getRoundPointValue pure function: rounds 4-5 return 2, rounds 1-3 return 1
+- Double points capped at 3 via Math.min in both resolveExecution and handleKaosFail
+- Role reveal order: Akta first (warm), Hogra Hand middle (respectful), Golare last (maximum drama)
+- FINAL_REVEAL template preserved but no longer used in performFinalReveal
 
 ### Pending Todos
 
@@ -122,5 +130,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 05-01-PLAN.md (Engagement Mechanics). Ready for Plan 02.
+Stopped at: Completed 05-02-PLAN.md (Spaning, Double Scoring, Role Reveal). All 15 plans across 5 phases complete.
 Resume file: None
