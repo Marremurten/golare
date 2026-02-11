@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 01-data-pipeline
-Plan: 01 complete, ready for 02
-Status: Plan 01-01 executed. player_messages data layer complete.
-Last activity: 2026-02-11 — 01-01 player_messages data layer complete
+Plan: 02 complete. Phase 01 done (2/2 plans).
+Status: Plan 01-02 executed. Message capture middleware wired. Data pipeline phase complete.
+Last activity: 2026-02-11 — 01-02 message capture middleware complete
 
-Progress: [..........] 0% (v1.1 — 0/5 phases, 1 plan complete)
+Progress: [##........] 20% (v1.1 — 1/5 phases, 2 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
+- Total plans completed: 17
 - Average duration: 6min
-- Total execution time: 1.55 hours
+- Total execution time: 1.60 hours
 
 **By Phase:**
 
@@ -33,7 +33,7 @@ Progress: [..........] 0% (v1.1 — 0/5 phases, 1 plan complete)
 | 04-ai-guzman | 3/3 | 12min | 4min |
 | 05-engagement | 2/2 | 10min | 5min |
 | **v1.1** | | | |
-| 01-data-pipeline | 1/? | 2min | 2min |
+| 01-data-pipeline | 2/2 | 5min | 2.5min |
 
 ## Accumulated Context
 
@@ -50,6 +50,8 @@ Key patterns established in v1:
 v1.1 decisions:
 - Ring buffer pruning via PostgreSQL trigger (not application code)
 - Fire-and-forget insert for message capture (no select return needed)
+- In-memory Map cache for game ID with 5-min TTL + explicit invalidation on state transitions
+- Bot admin check at /nyttspel (not every message) -- lightweight DATA-04 gate
 
 ### Pending Todos
 
@@ -63,5 +65,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 01-01-PLAN.md. Ready for 01-02 (message capture middleware).
+Stopped at: Completed 01-02-PLAN.md. Phase 01-data-pipeline complete (2/2 plans). Ready for phase 02.
 Resume file: None
