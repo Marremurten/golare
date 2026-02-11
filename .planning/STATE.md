@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 
 ## Current Position
 
-Phase: 03-whisper-integration (COMPLETE)
-Plan: 02 of 02 complete.
-Status: Phase 03 complete -- full whisper pipeline wired with behavioral data, verbatim safety, and graceful degradation. Phase 04 next.
-Last activity: 2026-02-11 — 03-02 complete, verified
+Phase: 04-gap-fill-accusations
+Plan: 01 of 02 complete.
+Status: Plan 01 complete -- mood computation, accusation target selection, prompt builders, and AI generation functions ready. Plan 02 next: wire into gap-fill schedule.
+Last activity: 2026-02-11 — 04-01 complete, verified
 
-Progress: [######....] 60% (v1.1 -- 3/5 phases, 5 plans complete)
+Progress: [######....] 60% (v1.1 -- 3/5 phases + 04-01, 6 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 20
+- Total plans completed: 21
 - Average duration: 6min
-- Total execution time: 1.69 hours
+- Total execution time: 1.77 hours
 
 **By Phase:**
 
@@ -36,6 +36,7 @@ Progress: [######....] 60% (v1.1 -- 3/5 phases, 5 plans complete)
 | 01-data-pipeline | 2/2 | 5min | 2.5min |
 | 02-behavioral-analysis | 1/1 | 2min | 2min |
 | 03-whisper-integration | 2/2 | 4min | 2min |
+| 04-gap-fill-accusations | 1/2 | 5min | 5min |
 
 ## Accumulated Context
 
@@ -62,6 +63,9 @@ v1.1 decisions:
 - Role-aware prompt calibration: PlayerRole determines Guzman tone (aggressive/seductive/respectful), never content
 - Verbatim safety check: 8-char threshold with single retry, return anyway on second failure (CONST-04)
 - Reassurance truth level mapped to "truth" at ai-guzman boundary (no DB/type migration needed)
+- Accusation generation returns null on AI failure (no template -- never fabricates constraint)
+- GroupMood computed at call time from playerNotes, never stored
+- Gap-fill always provocative regardless of mood; mood only adapts angle
 
 ### Pending Todos
 
@@ -75,5 +79,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 03-02-PLAN.md. Phase 03 (whisper-integration) fully complete. Phase 04 next.
+Stopped at: Completed 04-01-PLAN.md. Mood computation, accusation building blocks ready. Plan 02 next: wire into gap-fill schedule.
 Resume file: None
