@@ -1,295 +1,213 @@
-# Feature Research
+# Feature Research: AI Behavioral Awareness (v1.1)
 
-**Domain:** Telegram Bot Social Deduction Game (Async, Multi-Day)
-**Researched:** 2026-02-10
-**Confidence:** HIGH (core mechanics well-understood across the genre; async-specific patterns MEDIUM confidence due to fewer direct comparables)
-
-## Competitor Landscape
-
-Before mapping features, here is the ecosystem Golare enters:
-
-| Game/Bot | Platform | Format | Players | Key Differentiator |
-|----------|----------|--------|---------|-------------------|
-| @WerewolfBot (tgwerewolf.com) | Telegram | Synchronous, 5-15 min rounds | 5-35 | 60+ roles, achievements, 5.9M+ players, open source |
-| Mafia Game Master Bot | Telegram | Synchronous, ~20 min | 3-8 | Simplified Mafia, detective/mafia/civilian |
-| Deloo's Avalon Bot | Discord | Synchronous, ~30 min | 5-10 | Faithful Avalon implementation, Lady of the Lake |
-| Secret Hitler (secrethitler.io) | Web / Discord bot | Synchronous, ~30 min | 5-10 | Policy deck mechanic, Hitler doesn't know fascists |
-| Town of Salem 2 | Standalone app | Synchronous, ~15 min | 15 | 50+ roles, investigation results system, wills |
-| AI Wolves (Ideatrix) | Mobile app | Synchronous, ~10 min | 6-12 | AI-powered opponents with distinct personalities |
-| Blood on the Clocktower | Physical / apps | Synchronous, 30-90 min | 5-20 | Storyteller role, ghost mechanic, information economy |
-| Untrusted | Web | Synchronous, ~20 min | Up to 16 | Hacking theme, 27 classes, 100+ skills, log-based deduction |
-
-**Critical observation:** Every existing competitor is synchronous -- all players online at the same time, games last minutes. Golare's 5-day async format has zero direct Telegram competitors. This is both the biggest opportunity and the biggest design risk.
+**Domain:** AI Game Master behavioral tracking and message-aware reactions in async social deduction
+**Researched:** 2026-02-11
+**Confidence:** MEDIUM (novel domain -- no direct comparable exists; patterns synthesized from AI NPC research, LLM agent social deduction studies, and chat memory management best practices)
 
 ---
 
-## Feature Landscape
+## Context: What Exists in v1
 
-### Table Stakes (Users Expect These)
+Guzman (the AI game master) currently operates on **game state data only** -- he knows scores, team compositions, vote results, round phases, and narrative context. He does NOT know what players actually write in the group chat. His gap-fill commentary reacts to message *count* (quiet group = < 2 messages in 2 hours) but not message *content*.
 
-These are features that every social deduction game bot implements. Missing any of these would make Golare feel broken, not "minimalist."
+The `GuzmanContext` type already has a `playerNotes: Record<string, string>` field that is populated with whisper history but never with actual player chat data. The `gatherRoundEvents()` helper in both `whisper-handler.ts` and `engagement.ts` builds observable context (scores, team, votes) but zero chat content.
 
-| # | Feature | Why Expected | Complexity | Golare v1 Status | Notes |
-|---|---------|--------------|------------|------------------|-------|
-| T1 | **Secret role assignment via DM** | Core genre mechanic. Every bot does this. Players must learn their role privately. | Low | Planned | Golare: Akta/Golare/Hogra Hand via DM |
-| T2 | **Team-aware information** | Informed minority (evil knows each other) is foundational to social deduction tension | Low | Planned | Golare know each other. Standard Avalon pattern. |
-| T3 | **Team nomination + group voting** | The Resistance/Avalon core loop. The social deduction happens during nomination debate. | Medium | Planned | Capo rotation + JA/NEJ inline buttons |
-| T4 | **Secret mission execution** | Team members must secretly choose success/fail. Without secrecy, no deduction needed. | Medium | Planned | [Sakra] / [Gola] via private buttons |
-| T5 | **Win condition tracking + announcement** | Players need to know score and when the game ends. Every bot shows this. | Low | Planned | Best of 5, /status command |
-| T6 | **Role reveal at game end** | The payoff moment. "I KNEW IT!" -- players need the reveal. WerewolfBot, Avalon all do this. | Low | Not explicitly listed | Must add: full role reveal when game ends |
-| T7 | **Game state persistence** | Telegram bot may restart. Losing game state mid-game is unacceptable. WerewolfBot runs on persistent infra. | Medium | Planned | Supabase persistence |
-| T8 | **Rules/help command** | New players join mid-group. Need on-demand rules. WerewolfBot has /rules and !wiki. | Low | Planned | /regler command |
-| T9 | **Player list / alive status** | Players need to see who is in the game and current state. WerewolfBot: !stats shows alive players. | Low | Partially planned | /status shows score. Should also show player list + roles remaining. |
-| T10 | **Inline button interactions** | No one types commands during gameplay in 2026. WerewolfBot uses PM voting lists. Avalon uses buttons. | Medium | Planned | JA/NEJ, [Sakra]/[Gola] via inline keyboards |
-| T11 | **Failed vote escalation** | Avalon: 5 rejected teams = auto-fail. Secret Hitler: 3 failed elections = top policy enacted. Prevents infinite stalling. | Low | Planned | Kaos-mataren: 3 NEJ = auto-fail |
-| T12 | **Rotating leadership** | Prevents one player dominating nominations. Universal in Resistance/Avalon variants. | Low | Planned | Capo rotation |
-| T13 | **Onboarding / first-game tutorial** | Telegram game bots that don't explain themselves have massive drop-off. WerewolfBot has /rules, role wiki. | Medium | Planned | Intro sequence + /regler |
+**The gap:** Guzman talks ABOUT players but never reacts to what they ACTUALLY SAY. He is a paranoid leader who somehow never listens to the room.
 
-### Differentiators (Competitive Advantage)
+---
 
-These are features that either no competitor has, or that Golare implements in a fundamentally different way. These are why someone would choose Golare over @WerewolfBot.
+## Table Stakes (Required for Behavioral AI to Work)
 
-| # | Feature | Value Proposition | Complexity | Golare v1 Status | Notes |
-|---|---------|-------------------|------------|------------------|-------|
-| D1 | **Async 5-day format** | No existing Telegram social deduction bot does async. This is Golare's core identity. Games unfold over a work-week with fixed daily events, fitting into real life rather than demanding 30 min of synchronized attention. Creates sustained paranoia -- players think about the game all day. | High | Planned | Biggest differentiator. Also biggest risk (see Pitfalls). |
-| D2 | **AI Game Master (Guzman)** | No competitor has an AI-driven game master with personality. WerewolfBot is a mechanical narrator. Guzman actively stirs paranoia, generates dramatic mission narratives, whispers manipulative DMs, and fills gaps with commentary. This is the emotional engine of the game. | High | Planned | OpenAI GPT-4o powered. Cost management critical. |
-| D3 | **AI Viskningar (Whispers)** | Between scheduled events, Guzman DMs players with suspicions, lies, and manipulation. No competitor does personalized AI-driven psychological warfare. Creates engagement between events -- the game is always "on." | High | Planned | Key anti-passivity mechanic for async format. |
-| D4 | **Anti-passivity system (surveillance + anonymous whispers)** | The #1 problem in social deduction is eliminated/idle players doing nothing. Golare addresses this for non-team players: send anonymous messages via Guzman, surveil team members for cryptic clues. Blood on the Clocktower's "ghost mechanic" solves this for dead players; Golare solves it for non-selected players. | Medium | Planned | Critical for async -- players who have nothing to do for 12 hours will forget the game exists. |
-| D5 | **Symmetrisk Sista Chansen (double endgame)** | Both sides get a comeback chance. Avalon only gives evil the Merlin assassination. Secret Hitler only gives liberals the assassination. Golare gives BOTH sides a final twist. This makes the last day extremely tense regardless of score. | Medium | Planned | Novel mechanic. Needs careful UX to explain. |
-| D6 | **Themed immersion (Swedish suburb criminal underworld)** | WerewolfBot is generic medieval. Mafia bots are generic crime. Golare has a specific, vivid world: Betongen, fororten, Snabba Cash meets Top Boy. The slang (bre, shuno, aina, para) creates atmosphere no generic bot can match. | Medium | Planned | Language-specific. Limits international audience but creates strong identity for Swedish market. |
-| D7 | **Anti-blowout mechanics (double points)** | Most social deduction games can feel decided by round 3. Golare's double-point final rounds ensure comeback possibility. No Telegram competitor does this. | Low | Planned | Simple to implement, high impact on game feel. |
-| D8 | **Spaning (investigation tool)** | Every player gets one investigation per game. Unlike Avalon's Merlin (who knows all evil), this creates a scarce tactical resource. "When do I use my one shot?" is a compelling decision. Werewolf's Seer gets one check per night (renewable), but Golare's one-per-game version creates higher stakes. | Medium | Planned | Needs clear UX. Players must understand they have exactly one use. |
-| D9 | **AI gap-fill commentary** | Guzman reacts to group chat activity between fixed times. If the group is quiet, Guzman provokes. If accusations fly, Guzman amplifies. No bot does this -- they all wait for commands. | High | Planned | Requires monitoring group chat + AI calls. Token cost implications. |
+These must exist before any behavioral feature can function. Without them, attempts at "awareness" will produce hallucinations, wrong attributions, or empty references.
 
-### Anti-Features (Commonly Requested, Often Problematic)
+| # | Feature | Why Required | Complexity | Depends On |
+|---|---------|-------------|------------|------------|
+| T1 | **Message capture middleware** | Must intercept all group text messages during active games. grammY's `bot.on("message:text")` in group chats, with privacy mode disabled via BotFather. Store sender ID, text, timestamp. This is the raw data pipeline. | Low | BotFather privacy mode disabled (already required for gap-fill activity tracking in v1) |
+| T2 | **Per-player message ring buffer (DB)** | Store last ~10 messages per player per game. NOT unlimited history -- bounded storage prevents cost explosion in AI context windows and respects the "recent behavior" principle. Ring buffer semantics: when 11th message arrives, oldest drops. | Medium | T1, new DB table `player_messages` |
+| T3 | **Player activity stats (computed)** | Derived metrics from stored messages: message count per day, time-of-day pattern, average message length, days since last message. These are cheap to compute and give Guzman "instinct" without needing full LLM analysis of every message. | Low | T2 |
+| T4 | **Chat context builder for AI prompts** | Function that assembles a player's recent messages + activity stats into a prompt-injectable string. Must be token-aware (cap at ~500 tokens per player context to keep AI calls affordable). Analogous to `gatherRoundEvents()` but for chat behavior. | Medium | T2, T3 |
+| T5 | **Message content filtering** | Strip bot commands, system messages, stickers-only messages, and messages shorter than 3 characters before storage. Only meaningful player communication should inform Guzman. | Low | T1 |
 
-These are features that seem obvious but would actively harm Golare's design, especially given the async format.
+**Complexity note:** T1 and T5 are essentially extending the existing `trackGroupMessage()` function in `whisper-handler.ts` from counting to capturing. The middleware hook already exists -- it just needs to do more.
 
-| # | Feature | Why Requested | Why Problematic | Alternative |
-|---|---------|---------------|-----------------|-------------|
-| A1 | **Player elimination (killing players mid-game)** | Standard in Werewolf/Mafia. "Authentic social deduction." | In a 5-day game, being eliminated on day 1 means 4 days of watching. The Resistance/Avalon solved this by removing elimination entirely. Blood on the Clocktower solved it with ghosts. Golare must not eliminate players. | All players stay in every round. Non-team players get anti-passivity tools (whispers, surveillance). |
-| A2 | **60+ roles like WerewolfBot** | "More roles = more replayability." | Complexity explosion. WerewolfBot took years to build 60+ roles. Golare's async format means players have hours between actions -- they need clarity, not complexity. 3 roles is correct for v1. | Start with 3 clear roles (Akta, Golare, Hogra Hand). Add 1-2 new roles per major version if warranted. |
-| A3 | **Real-time synchronous play option** | "Sometimes we want a quick game." | Fundamentally different UX. Real-time requires all players online simultaneously. Would need separate game engine, different pacing, different AI prompting. Two games in one = neither done well. | Stay async. Let WerewolfBot handle synchronous. Golare is the async game. |
-| A4 | **Voice messages / TTS** | "Hearing Guzman would be amazing." | High complexity (TTS integration, audio in Telegram, cost per message). Correctly deferred to v2. Would delay v1 significantly for a nice-to-have. | Text with strong formatting and slang creates Guzman's voice. Voice is v2 polish. |
-| A5 | **Web dashboard / companion app** | "I want to see game history, stats, replays." | Splits attention from Telegram. Players would need to context-switch. The magic is that Golare lives entirely in the chat. | Keep everything in Telegram. Use /status, /regler, and end-of-game summaries. Consider web dashboard only for v3+ analytics. |
-| A6 | **Configurable timers / schedule** | "Our group is active at different times." | Complexity for v1. Fixed schedule (09/12/15/18/21) is predictable and learnable. Custom timers require timezone handling, admin UI, edge cases. | Fixed schedule for v1. Configurable schedule is correctly scoped to v2. |
-| A7 | **Multiple concurrent games per group** | "We have a big group, we want parallel games." | State management nightmare. Overlapping notifications. Confusing for players. WerewolfBot allows this but it causes constant confusion. | One game per group. Want another game? Make another group. |
-| A8 | **Public vote tallies during voting** | "I want to see who voted what in real-time." | Kills social deduction. Public votes create bandwagoning. Avalon votes are simultaneous reveal. Secret Hitler has sequential but that is part of its specific design. | Votes are hidden until deadline. Results announced by Guzman simultaneously. |
-| A9 | **Spectator mode** | "I want to watch without playing." | In async group chat, spectators see all group messages anyway. A formal spectator role adds complexity without value. In Telegram group context, everyone in the group can already see public messages. | No formal spectator mode needed. Non-players in the group naturally spectate. |
-| A10 | **Achievements / badges / XP system** | "WerewolfBot has achievements, we want that." | Premature for v1. Achievements require many completed games to design meaningfully. WerewolfBot added achievements after millions of games. Focus on making the core game compelling first. | Defer entirely. If Golare reaches 1000+ completed games, design achievements based on real play patterns. |
-| A11 | **AI players (filling empty slots)** | "We only have 3 friends online, let AI fill the rest." | AI cannot participate in the social deduction meta-game that happens outside the game (IRL conversations, reading tone in messages). An AI "player" in a text chat is just a chatbot pretending to have allegiances. Detectable and unsatisfying. | Minimum 4 human players. If you don't have 4, you don't play. Quality over accessibility. |
-| A12 | **Screenshots / proof of role** | "Let players prove their role by sharing screenshots." | Completely breaks social deduction. If you can prove your role, there is no deduction. This is the #1 metagaming problem in online social deduction. | No screenshot-based proof mechanics. DM content is designed to be unverifiable. Guzman's answers to Spaning may be true or false specifically to prevent proof-sharing. |
+---
+
+## Differentiators (What Makes This Special)
+
+These are the features that make Guzman feel genuinely aware rather than producing generic "I'm watching you" commentary. The difference between "AI that monitors chat" and "AI that PLAYS the social game."
+
+| # | Feature | Value Proposition | Complexity | Depends On |
+|---|---------|-------------------|------------|------------|
+| D1 | **Oblique message references in whispers** | Guzman's DM whispers paraphrase or twist things a player said in group chat. NOT direct quotes -- oblique, paranoia-inducing references. "Du sa natt intressant till gruppen forut... jag undrar om du menade det pa riktigt." This is the core "wow, he's listening" moment. | Medium | T4, existing whisper prompt system |
+| D2 | **Silence-calling in group** | Guzman publicly calls out players who have not written anything in the group chat for extended periods (e.g., 6+ hours during active game hours). "Varfor ar du sa tyst, [Name]? Nagon som tiger har natt att gomma." Paranoia amplifier. Distinct from gap-fill (which reacts to overall group quiet) -- this targets INDIVIDUALS. | Low | T3 |
+| D3 | **Activity-adapted mission narratives** | Mission posts reference the group's recent energy. If the group was arguing heatedly before the mission, Guzman acknowledges the tension. If the group was dead quiet, Guzman comments on the suspicious silence. The narrative feels reactive to the real social situation. | Medium | T3, T4, existing mission narrative prompts |
+| D4 | **Behavioral whisper triggers** | New event-trigger types beyond the existing `mission_failed`, `close_vote`, `kaos_triggered`. Add: `player_accused` (someone accused another by name), `heated_exchange` (rapid back-and-forth between two players), `sudden_silence` (active player goes quiet). These create reactive whispers that feel timely. | High | T2, T3, message pattern detection logic |
+| D5 | **Mood-aware gap-fill** | Current gap-fill knows "group is quiet." Behavioral gap-fill also knows the GROUP MOOD: were the last messages accusatory? Friendly? Nervous? Guzman's gap-fill commentary adapts. Accusatory mood = "Bra, bra... misstanksamhet haller oss vid liv." Friendly mood = "Ni ar lite VAL mysiga for en liga dar nagon ar en rata." | Medium | T4, existing gap-fill system |
+| D6 | **Player behavioral profiles in GuzmanContext** | Extend `playerNotes` to include AI-generated behavioral summaries: "Ahmed has been the most vocal accuser. Sara deflects with humor. Ali has been unusually quiet since round 3." Updated after each round, these compound across the game, giving Guzman a persistent "read" on each player. | Medium | T3, T4, existing GuzmanContext update cycle |
+| D7 | **Accusation tracking** | Detect when players accuse each other by name in group chat (heuristic: message contains another player's name + suspicious/accusatory keywords). Feed this to AI context as social graph data. "Ahmed anklagade Sara 3 ganger. Sara har inte namnt Ahmed alls." | Medium | T2, player name matching |
+
+---
+
+## Anti-Features (Things to Deliberately NOT Build)
+
+These are tempting but would make the experience worse -- either by breaking immersion, creating an adversarial surveillance feeling, or adding complexity that does not serve the social deduction core.
+
+| # | Anti-Feature | Why Tempting | Why Harmful | What to Do Instead |
+|---|-------------|-------------|-------------|-------------------|
+| A1 | **Expose activity stats to players** | "Show everyone who is most/least active as a leaderboard." | Turns the game from social deduction into activity optimization. Quiet players get socially punished by the group, not by Guzman's paranoia. Kills the organic social dynamic. Stats should be INTERNAL -- Guzman's private intelligence, not public data. | Stats feed AI prompts only. Players never see raw numbers. |
+| A2 | **Direct quoting of player messages** | "Guzman should quote exactly what someone said." | Direct quotes feel like surveillance, not like a paranoid leader's instinct. They also create a provable record -- players can verify if Guzman is lying about what was said. Oblique references preserve ambiguity ("Vem sa forut att de 'litar pa alla'? Intressant ordval..."). Direct quotes feel mechanical; oblique references feel human. | Always paraphrase, twist, or reference obliquely. Never use quotation marks around actual player text in Guzman's output. |
+| A3 | **Sentiment scores visible anywhere** | "Show a mood indicator per player." | Same problem as A1 but worse. Sentiment is inherently noisy. Displaying "Sara: SUSPICIOUS" as a visible label would be both inaccurate and game-breaking. Players would game their writing style to manipulate the score. | Sentiment is a soft signal in AI prompts, never a displayed value. |
+| A4 | **Real-time reactive messages to every notable chat event** | "Guzman should respond every time someone accuses someone." | Notification fatigue. The research is clear: AI reactions that repeat become annoying quickly, even if initially surprising. Guzman should react to behavior in SCHEDULED outputs (whispers, gap-fill, missions), not as a live chat participant. The delay between stimulus and reaction is what creates paranoia -- "He noticed... but when will he say something?" | Behavioral data feeds scheduled AI outputs. Guzman reacts on his own timeline, not as a chatbot. |
+| A5 | **Full message history storage** | "Store ALL messages for complete context." | Cost explosion in both storage and AI tokens. A 10-player game over 5 days might generate 500-1000 group messages. Feeding all of that into every AI call would be prohibitively expensive and would dilute the signal. The last ~10 messages per player captures recent behavior without drowning in noise. | Ring buffer of ~10 messages per player. Older messages are summarized into behavioral profiles (D6), not preserved verbatim. |
+| A6 | **Automated lie detection** | "Use AI to detect if a player is lying based on their messages." | The game IS about lying. Automated detection would break the core mechanic. Also, LLM "lie detection" from text is unreliable and would produce false positives that feel unfair. | Guzman can SPECULATE about honesty based on behavioral patterns ("du beter dig annorlunda sen runda 3"), but never claim certainty. |
+| A7 | **Player-visible "Guzman is watching" indicator** | "Show a typing indicator or eye emoji when Guzman processes a message." | Creates self-censorship. Players should forget the bot is reading and write naturally. The magic is when Guzman references something hours later in a whisper and the player thinks "wait, he reads everything?" The moment of realization is better than constant awareness. | No visual indicators of message processing. Silent capture. |
+| A8 | **Per-message AI analysis** | "Run each message through the LLM for sentiment/intent analysis." | Cost: at $0.15/1M input tokens for gpt-4.1-nano, analyzing 500+ messages per game individually would be expensive AND slow. Also unnecessary -- batch analysis at scheduled intervals is both cheaper and produces better context. | Analyze in batch at whisper/gap-fill/mission generation time, not per-message. |
+
+---
+
+## How AI Should Reference Player Messages
+
+This is the most important design question for v1.1. Get it wrong and Guzman feels either creepy or robotic.
+
+### The Spectrum of Reference
+
+| Style | Example | Effect | Verdict |
+|-------|---------|--------|---------|
+| **Direct quote** | "Du sa 'jag litar pa Sara' klockan 14:32." | Surveillance feeling. Provably accurate. Breaks ambiguity. | NEVER use |
+| **Close paraphrase** | "Du sa att du litar pa Sara forut." | Still feels like surveillance but slightly softer. Player knows exactly which message is referenced. | AVOID except in rare high-impact whispers |
+| **Oblique reference** | "Jag horde att nagon snackade om foretroende i gruppen... intressant ordval just nu." | Creates paranoia without pinpointing. Player wonders: "Does he mean MY message?" | PRIMARY METHOD |
+| **Behavioral pattern** | "Du har varit valdig aktiv med att forsvara Ahmed. Varfor?" | References accumulated behavior, not a specific message. Feels like Guzman has been OBSERVING over time. | PRIMARY METHOD |
+| **Atmospheric reference** | "Stormigt i chatten idag, bre. Jag gillar det -- nar ni brakar ser jag vem som svettas." | References group mood without targeting anyone. Sets tone. | GOOD for gap-fill and mission narratives |
+| **Twisted reference** | "Nagon i gruppen antydde att de 'visste vem golare ar'... men sa nagon verkligen det?" | Guzman attributes something slightly different from what was actually said, creating confusion. Did someone say that? Classic unreliable narrator. | HIGH-VALUE differentiator -- use sparingly |
+
+### The Design Principle
+
+**Guzman is an unreliable narrator with good ears.** He hears everything but filters it through his paranoid worldview. He never quotes. He paraphrases with bias. He sometimes invents or exaggerates. Players should never be 100% sure if Guzman's reference to their message is accurate or distorted.
+
+This maps perfectly to the existing whisper truth_level system: `truth`, `half_truth`, `lie`. Apply the same framework to message references:
+- **truth**: Accurately paraphrased behavioral observation ("du har anklagat Ahmed tre ganger idag")
+- **half_truth**: Real observation with distorted interpretation ("du forsvarade Sara -- kanske lite FOR ivrigt?")
+- **lie**: Fabricated or exaggerated reference ("jag horde att du lovade nagon att du skulle rosta ja... stammer det?")
+
+---
+
+## Frequency and Timing of Behavioral Reactions
+
+### How Often Should Guzman React to Behavior?
+
+The research is unambiguous: AI reactions that repeat become annoying, even if initially surprising. Cooldowns and variety are essential.
+
+| Output Type | Current Cadence (v1) | v1.1 Behavioral Enhancement | Rationale |
+|------------|---------------------|------------------------------|-----------|
+| **Whispers (DM)** | 2x daily (13:00, 19:00), 1-2 players each | Same cadence, but whisper CONTENT now references player behavior. No new sends -- richer content in existing sends. | Zero notification increase. Higher quality. |
+| **Gap-fill (group)** | When group quiet (< 2 msgs/2hr) | Same trigger, but content references recent group mood/behavior. Plus new trigger: individual silence call-outs (max 1 per player per day). | Slight increase but only when already quiet. Natural. |
+| **Mission narratives** | 1x daily (09:00) | Same cadence, content references previous day's group energy. | Zero notification increase. |
+| **Behavioral accusations (NEW)** | N/A | Max 1 per day, in group chat, during gap-fill window. Guzman calls out a specific behavioral pattern. "Varfor har [Name] varit sa tyst sedan stoten misslyckades?" | One new message type. Rate-limited to prevent annoyance. |
+
+### The "Last Straw" Rule
+
+Guzman should never reference the same player's behavior more than twice per day across ALL output types combined. If Ahmed was called out in a whisper AND in a gap-fill comment, he should not be mentioned in the mission narrative that same day. Spread attention across players.
+
+### Timing Matters
+
+Behavioral references are most impactful when DELAYED from the triggering message:
+- Player posts something suspicious at 10:00
+- Guzman's scheduled whisper at 13:00 obliquely references it
+- 3-hour delay creates "wait, he noticed?" moment
+
+This is inherent to the scheduled architecture. Do NOT add real-time reactive messages (see Anti-Feature A4).
 
 ---
 
 ## Feature Dependencies
 
 ```
-Core Platform
-  Bot registration (/start, /nyttspel)
-    |
-    v
-  Role Assignment (Akta, Golare, Hogra Hand)
-    |
-    +---> Team-aware info (Golare see each other)
-    |
-    v
-  Daily Game Loop
-    |
-    +---> Mission Posting (AI Guzman)  ---> requires OpenAI integration
-    |
-    +---> Capo Rotation + Team Nomination
-    |       |
-    |       v
-    |     Group Voting (inline buttons)
-    |       |
-    |       +---> Kaos-mataren (3 NEJ = auto-fail)
-    |       |
-    |       v
-    |     Mission Execution ([Sakra]/[Gola])
-    |       |
-    |       v
-    |     Results + Score Update
-    |
-    +---> Anti-passivity (whispers, surveillance)  ---> requires DM infrastructure
-    |
-    +---> AI Viskningar  ---> requires OpenAI + player state tracking
-    |
-    +---> AI Gap-fill  ---> requires group chat monitoring + OpenAI
-    |
-    v
-  Win Condition Check (best of 5)
-    |
-    v
-  Symmetrisk Sista Chansen  ---> depends on final score
-    |
-    v
-  Role Reveal + Game End
-    |
-    v
-  Spaning (can be used anytime during game)  ---> independent of daily loop
+v1 Existing Infrastructure
+  |
+  +---> trackGroupMessage() [whisper-handler.ts]  -- already counts messages per group
+  |       |
+  |       v
+  |     T1: Message capture middleware  -- extend from counting to capturing
+  |       |
+  |       +---> T5: Content filtering  -- strip commands, system msgs
+  |       |
+  |       v
+  |     T2: Per-player message ring buffer (DB)
+  |       |
+  |       +---> T3: Player activity stats (derived)
+  |       |       |
+  |       |       +---> D2: Silence-calling
+  |       |       +---> D3: Activity-adapted narratives
+  |       |
+  |       +---> T4: Chat context builder
+  |       |       |
+  |       |       +---> D1: Oblique message references in whispers
+  |       |       +---> D5: Mood-aware gap-fill
+  |       |       +---> D6: Behavioral profiles in GuzmanContext
+  |       |
+  |       +---> D7: Accusation tracking
+  |               |
+  |               v
+  |             D4: Behavioral whisper triggers
+  |
+  v
+v1 Existing AI System
+  |
+  +---> buildWhisperPrompt()  -- inject T4 chat context
+  +---> buildGapFillPrompt()  -- inject T4 chat context + mood
+  +---> buildMissionPrompt()  -- inject T3 activity stats
+  +---> updateNarrativeContext()  -- append D6 behavioral profiles
 ```
 
-**Key dependency insight:** The AI features (Guzman missions, Viskningar, gap-fill) all depend on OpenAI integration. This is a single point of failure. If OpenAI is down, the game must still function with fallback text.
-
-**Critical path:** Bot registration -> Role assignment -> Daily loop (nomination -> vote -> execute -> results) -> Win condition -> End game. Everything else is enhancement on top of this skeleton.
+**Critical insight:** The dependency graph shows that T1-T2-T4 is the critical path. Everything else branches from having captured messages available in a context builder. The AI prompt modifications (D1, D3, D5) are then relatively small changes to existing prompt builder functions.
 
 ---
 
-## MVP Definition
+## MVP Recommendation for v1.1
 
-### Launch With (v1 -- Must Ship)
+### Phase 1: Data Pipeline (ship first)
 
-These are required for the game to be playable and differentiated:
+1. **T1: Message capture middleware** -- extend `trackGroupMessage()` to store message content
+2. **T5: Content filtering** -- basic filtering before storage
+3. **T2: Per-player ring buffer** -- new `player_messages` table, 10 messages max per player per game
+4. **T3: Activity stats** -- computed on read, not stored separately
 
-- [x] Bot registration (/start in DM, /nyttspel in group)
-- [x] Secret role assignment (Akta, Golare, Hogra Hand) via DM
-- [x] Role balancing (4-10 players, ~25% Golare)
-- [x] Golare see each other's identities
-- [x] Daily game loop with fixed schedule (09/12/15/18/21)
-- [x] Capo rotation + team nomination
-- [x] Group voting with inline buttons (JA/NEJ)
-- [x] Kaos-mataren (3 NEJ = auto-fail)
-- [x] Secret mission execution ([Sakra]/[Gola] via DM buttons)
-- [x] Results announcement with score tracking
-- [x] Win condition: best of 5 missions
-- [x] Symmetrisk Sista Chansen (both sides get endgame chance)
-- [x] Role reveal at game end (ADD THIS -- not explicitly in requirements)
-- [x] AI Guzman: mission narratives, persona, dramatic results
-- [x] AI Viskningar: DM players between events
-- [x] Anti-passivity: anonymous whispers for non-team players
-- [x] Anti-passivity: surveillance for cryptic clues
-- [x] Spaning: one investigation per player per game
-- [x] Anti-blowout: double points in final rounds
-- [x] Onboarding intro sequence
-- [x] /regler, /status commands
-- [x] Game state persisted in Supabase
-- [x] AI fallback: pre-written templates if OpenAI is unavailable
+### Phase 2: AI Integration (ship second)
 
-### Add After Validation (v1.x -- Based on Playtesting)
+5. **T4: Chat context builder** -- token-aware prompt injection function
+6. **D1: Oblique references in whispers** -- modify `buildWhisperPrompt()` to include chat context
+7. **D5: Mood-aware gap-fill** -- modify `buildGapFillPrompt()` to include chat mood
+8. **D3: Activity-adapted narratives** -- modify `buildMissionPrompt()` with activity data
 
-These should be built only after real players complete several games:
+### Phase 3: Advanced Behavioral Features (ship third)
 
-- [ ] **Reminder notifications**: Ping players who haven't voted/acted as deadline approaches. Critical for async but needs playtesting to find the right timing and tone.
-- [ ] **Game summary / recap**: End-of-game narrative summary of key moments ("Dag 2: Ali gick med pa laget men gollade -- ingen misstankte nagot"). Requires tracking key events.
-- [ ] **Player statistics**: Games played, win rate by role, average game performance. Requires enough completed games to be meaningful.
-- [ ] **Adjustable notification verbosity**: Some players may find Guzman's DMs too frequent. Let players /tysta (mute) or /hogljudd (max notifications).
-- [ ] **Re-match / play again**: Quick command to start a new game with same players after one ends.
-- [ ] **Guzman personality variations**: Different AI personas for variety (paranoid, cold and calculating, chaotic). Same game, different narrator.
+9. **D2: Individual silence-calling** -- new gap-fill variant targeting quiet players
+10. **D6: Behavioral profiles** -- extend `updateNarrativeContext()` to generate per-player summaries
+11. **D7: Accusation tracking** -- heuristic detection + social graph data
+12. **D4: Behavioral triggers** -- new whisper trigger types based on D7
 
-### Future Consideration (v2+)
+### Defer to v1.2+
 
-- [ ] Voice messages / TTS for Guzman
-- [ ] "The Wiretap" role (Golare intercepts Akta private messages)
-- [ ] Configurable game length (3/5/7 days)
-- [ ] Additional roles (max 1-2 per version)
-- [ ] Cross-game persistent player reputation
-- [ ] Tournament mode (series of games with leaderboard)
-- [ ] Localization (English, other languages)
-
----
-
-## Feature Prioritization Matrix
-
-| Feature | User Value | Implementation Cost | Risk if Deferred | Priority |
-|---------|-----------|---------------------|------------------|----------|
-| Secret role assignment + DM | Critical | Low | Game unplayable | P0 |
-| Daily game loop (nominate/vote/execute) | Critical | Medium | Game unplayable | P0 |
-| Inline button interactions | Critical | Medium | Unusable UX | P0 |
-| Win condition + score tracking | Critical | Low | No game conclusion | P0 |
-| Game state persistence (Supabase) | Critical | Medium | Data loss on restart | P0 |
-| AI Guzman narratives | High | High | Loses core differentiator | P0 |
-| Role reveal at game end | High | Low | Unsatisfying ending | P0 |
-| Onboarding / /regler | High | Medium | New player confusion, drop-off | P0 |
-| AI Viskningar (whispers) | High | High | Async feels dead between events | P1 |
-| Anti-passivity (whispers + surveillance) | High | Medium | Non-team players disengage | P1 |
-| Kaos-mataren | Medium | Low | Stalling possible but rare | P1 |
-| Symmetrisk Sista Chansen | Medium | Medium | Less dramatic endings | P1 |
-| Spaning (investigation) | Medium | Medium | Less tactical depth | P1 |
-| Anti-blowout (double points) | Medium | Low | Blowouts feel bad but game still works | P2 |
-| AI gap-fill commentary | Medium | High | Silence between events | P2 |
-| Reminder notifications | High | Low | Players forget to act | v1.x |
-| Game summary / recap | Medium | High | Players miss context | v1.x |
-| Player statistics | Low | Medium | No progression feel | v1.x |
-| AI fallback templates | High | Medium | Game breaks if OpenAI down | P0 |
-
----
-
-## Competitor Feature Comparison
-
-| Feature Category | WerewolfBot (Telegram) | Avalon Bot (Discord) | Secret Hitler (Web/Discord) | Golare Approach |
-|-----------------|----------------------|---------------------|---------------------------|-----------------|
-| **Format** | Synchronous, 5-15 min | Synchronous, ~30 min | Synchronous, ~30 min | Async, 5 days |
-| **Player count** | 5-35 | 5-10 | 5-10 | 4-10 |
-| **Roles** | 60+ | 6 (Merlin, Percival, Assassin, Morgana, Mordred, Oberon) | 3 (Liberal, Fascist, Hitler) | 3 (Akta, Golare, Hogra Hand) |
-| **Player elimination** | Yes (core mechanic) | No | No | No |
-| **Voting** | Lynch vote (day) | Approve/reject team | Ja/Nein on chancellor | JA/NEJ on team |
-| **Secret actions** | Night kills, abilities | Quest success/fail | Policy selection | [Sakra]/[Gola] |
-| **Failed vote penalty** | N/A | 5 rejects = auto-fail | 3 failed elections = policy | 3 NEJ = auto-fail (Kaos-mataren) |
-| **Special knowledge role** | Seer (nightly checks) | Merlin (knows all evil) | N/A | Hogra Hand (one Spaning) |
-| **Endgame twist** | N/A | Assassinate Merlin | N/A | Symmetrisk (both sides) |
-| **Game master** | Mechanical bot narrator | Mechanical bot | Mechanical bot | AI persona (Guzman) with dynamic narrative |
-| **Between-round engagement** | None | None | None | AI Viskningar, anonymous whispers, surveillance |
-| **Achievements/stats** | Yes (extensive) | No | Basic stats | Deferred (v1.x) |
-| **Onboarding** | /rules, !wiki per role | !help | Rules link | In-character intro + /regler |
-| **Theme** | Generic medieval/horror | Arthurian | 1930s political | Swedish suburb criminal underworld |
-| **Language** | 40+ languages | English (custom skins) | English | Swedish (with slang) |
-| **Anti-passivity for non-team** | N/A (all active or dead) | None | None | Anonymous whispers, surveillance clues |
-| **AI integration** | None | None | None | Full (OpenAI GPT-4o for GM persona) |
-
-**Key takeaway from comparison:** Golare's competitive moat is the combination of async format + AI game master + anti-passivity system. No competitor has any of these three features. All three together create an experience that cannot be replicated by WerewolfBot adding a new role.
-
----
-
-## Critical Feature Design Notes
-
-### The Async Problem (Most Important Design Challenge)
-
-Synchronous social deduction works because of real-time pressure: you have seconds to read someone's face, minutes to argue your case. Async removes this entirely. Golare must replace real-time pressure with:
-
-1. **Anticipation pressure**: Knowing the vote result drops at 15:00 creates all-day tension
-2. **Information drip**: AI Viskningar feed partial, potentially false info throughout the day
-3. **Social pressure**: Anonymous whispers let players influence the group between events
-4. **Scarcity pressure**: One Spaning per game means choosing when to use it is agonizing
-
-If the between-event experience feels dead, the game fails. The AI features (D2, D3, D4, D9) are not nice-to-haves -- they are structural requirements of the async format.
-
-### The Screenshot/Proof Problem
-
-Online social deduction's biggest metagaming issue is players proving their role via screenshots. Golare's design already mitigates this:
-- Spaning answers "may be true or false" -- so a screenshot proves nothing
-- Guzman's whispers are personalized -- sharing them is possible but unreliable
-- The game's social contract should explicitly state: "Guzman ljuger ibland. Lita inte pa nagon."
-
-### The Notification Balance Problem
-
-In a 5-day game with AI whispers and gap-fill, there is a real risk of notification fatigue. Players may mute the group chat, which kills engagement. Design principle: **fewer, higher-impact messages > constant stream**.
+- Twisted references (the "unreliable narrator" fabrication feature) -- needs careful prompt engineering and testing to avoid confusion between intentional AI fabrication and AI hallucination
+- Cross-game behavioral memory (player tendencies across multiple games)
 
 ---
 
 ## Sources
 
-- [Werewolf for Telegram (tgwerewolf.com)](https://www.tgwerewolf.com/) -- 5.9M+ players, 60+ roles, achievements system
-- [Werewolf Bot Commands Wiki](https://werewolf.chat/Commands) -- comprehensive command reference
-- [WerewolfBot GitHub (GreyWolfDev)](https://github.com/GreyWolfDev/Werewolf) -- open source implementation
-- [Deloo's Avalon Bot (Discord)](https://top.gg/bot/699024385498939473) -- Avalon implementation with Lady of the Lake
-- [Avalon Discord Bot (cameronleong)](https://github.com/cameronleong/avalon) -- open source Avalon bot
-- [Secret Hitler (secrethitler.io)](https://secrethitler.io/) -- web implementation
-- [Secret Hitler Discord Bot](https://sh-prime.org/) -- Discord implementation with auto-muting
-- [Blood on the Clocktower](https://bloodontheclocktower.com/) -- ghost mechanic, storyteller role, information economy
-- [Blood on the Clocktower Critical Analysis](https://mechanicsofmagic.com/2025/04/18/critical-play-2-competitive-analysis-blood-on-the-clocktower/) -- ghost mechanic solves elimination problem
-- [AI Wolves Game (Ideatrix)](https://ideatrix.ai/) -- AI-powered social deduction with distinct AI personalities
-- [Town of Salem](https://brandonthegamedev.com/town-of-salem-making-a-complex-social-deduction-game-with-simple-rules/) -- 50+ roles, investigation system
-- [Untrusted: Web of Cybercrime](https://www.playuntrusted.com/) -- hacking-themed social deduction, log-based deduction
-- [Social Deduction Game Design Fundamentals (BKGameDesign)](https://bkgamedesign.medium.com/social-deduction-game-design-fundamentals-a4cbae378005) -- design principles
-- [The Problem With Social Deduction Board Games](https://bumblingthroughdungeons.com/the-problem-with-social-deduction-board-games/) -- elimination problem, engagement issues
-- [Cheating in Social Deduction Games (BGG)](https://boardgamegeek.com/thread/2883528/cheating-in-social-deduction-games) -- metagaming prevention
-- [The Resistance: Avalon Rules](https://avalon-game.com/wiki/rules/) -- original game mechanics reference
-- [Telegram Bot API: Buttons](https://core.telegram.org/api/bots/buttons) -- inline keyboard capabilities
-- [Telegram Onboarding Kit (GitHub)](https://github.com/Easterok/telegram-onboarding-kit) -- onboarding patterns for Telegram bots
-- [Mafia Bot GitHub (AndreaZChen)](https://github.com/AndreaZChen/Mafia-Bot) -- Python Telegram Mafia bot reference
-- [What Makes Social Games Social? (Gamedeveloper.com)](https://www.gamedeveloper.com/disciplines/what-makes-social-games-social-) -- async vs sync engagement
+- [LLM Chat History Summarization Guide (mem0.ai)](https://mem0.ai/blog/llm-chat-history-summarization-guide-2025) -- sliding window and summarization patterns for chat memory
+- [Context Window Management Strategies (apxml.com)](https://apxml.com/courses/langchain-production-llm/chapter-3-advanced-memory-management/context-window-management) -- FIFO queue for conversation memory
+- [Microscopic Analysis on LLM Players via Social Deduction Game (arXiv)](https://arxiv.org/html/2408.09946v1) -- fine-grained behavioral metrics (accusation rate, camouflage, vote rate)
+- [Finding Deceivers with LLMs in Mafia (Nature Scientific Reports)](https://www.nature.com/articles/s41598-024-81997-5) -- LLM deception detection from partial information
+- [On the Importance of Reactions in Game AI (gamedeveloper.com)](https://www.gamedeveloper.com/design/you-had-me-at-aaaahhh-on-the-importance-of-reactions-in-game-ai) -- cooldowns, variety, annoyance thresholds for AI reactions
+- [Inworld AI: Fourth Wall and NPC Design](https://inworld.ai/blog/ai-npcs-and-the-future-of-video-games) -- managing fourth wall boundaries, player profiles, relationship progression
+- [Ubisoft NEO NPC: Authenticity Boundaries](https://news.ubisoft.com/en-us/article/5qXdxhshJBXoanFZApdG3L/how-ubisofts-new-generative-ai-prototype-changes-the-narrative-for-npcs) -- balancing NPC awareness vs breaking character
+- [grammY Filter Queries (grammy.dev)](https://grammy.dev/guide/filter-queries) -- message type filtering for bot middleware
+- [Telegram Bot Privacy Mode (core.telegram.org)](https://core.telegram.org/bots/faq) -- disabling privacy mode for full group message access
+- [Social Deduction Game Design Fundamentals (BKGameDesign)](https://bkgamedesign.medium.com/social-deduction-game-design-fundamentals-a4cbae378005) -- player behavior observation as core mechanic
+- [LLM Sentiment Analysis for Gaming (zenml.io)](https://www.zenml.io/llmops-database/large-language-models-for-game-player-sentiment-analysis-and-retention) -- lightweight sentiment analysis in game contexts
+- [Chatbot Design Guide 2026 (jotform.com)](https://www.jotform.com/ai/agents/chatbot-design/) -- pacing controls and interaction frequency management
 
 ---
-*Feature research for: Golare -- Telegram Bot Async Social Deduction Game*
-*Researched: 2026-02-10*
+*Feature research for: Golare v1.1 -- AI Behavioral Awareness*
+*Researched: 2026-02-11*
