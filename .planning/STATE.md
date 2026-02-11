@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 
 ## Current Position
 
-Phase: 01-data-pipeline
-Plan: 02 complete. Phase 01 done (2/2 plans).
-Status: Plan 01-02 executed. Message capture middleware wired. Data pipeline phase complete.
-Last activity: 2026-02-11 — 01-02 message capture middleware complete
+Phase: 02-behavioral-analysis
+Plan: 01 complete.
+Status: Plan 02-01 executed. Behavioral analysis module created and wired into updateNarrativeContext.
+Last activity: 2026-02-11 — 02-01 behavioral analysis module complete
 
-Progress: [##........] 20% (v1.1 — 1/5 phases, 2 plans complete)
+Progress: [###.......] 30% (v1.1 — 3 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 17
+- Total plans completed: 18
 - Average duration: 6min
-- Total execution time: 1.60 hours
+- Total execution time: 1.63 hours
 
 **By Phase:**
 
@@ -34,6 +34,7 @@ Progress: [##........] 20% (v1.1 — 1/5 phases, 2 plans complete)
 | 05-engagement | 2/2 | 10min | 5min |
 | **v1.1** | | | |
 | 01-data-pipeline | 2/2 | 5min | 2.5min |
+| 02-behavioral-analysis | 1/? | 2min | 2min |
 
 ## Accumulated Context
 
@@ -52,6 +53,9 @@ v1.1 decisions:
 - Fire-and-forget insert for message capture (no select return needed)
 - In-memory Map cache for game ID with 5-min TTL + explicit invalidation on state transitions
 - Bot admin check at /nyttspel (not every message) -- lightweight DATA-04 gate
+- Heuristic Swedish keyword matching for tone classification (zero ML deps, CONST-01)
+- Anomaly detection relative to player's own history across rounds (not group baseline)
+- Non-critical behavioral analysis: failure never blocks game loop (CONST-04)
 
 ### Pending Todos
 
@@ -65,5 +69,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 01-02-PLAN.md. Phase 01-data-pipeline complete (2/2 plans). Ready for phase 02.
+Stopped at: Completed 02-01-PLAN.md. Behavioral analysis module created and wired.
 Resume file: None
