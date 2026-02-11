@@ -78,11 +78,11 @@ Plans:
 ### Phase 5: Engagement
 **Goal**: Non-team players have meaningful actions every phase -- anonymous whispers, surveillance, and investigation -- plus anti-blowout mechanics and a dramatic role reveal at game end, making the async format engaging for every player every day.
 **Depends on**: Phase 4
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 05-01: Anonymous whispers and surveillance mechanics
-- [ ] 05-02: Spaning (investigation), anti-blowout, and role reveal
+- [ ] 05-01-PLAN.md -- Anonymous whispers (/viska) and surveillance (/spana): DB tables, AI relay with role hints, engagement Composer handler, freeform text capture
+- [ ] 05-02-PLAN.md -- Spaning (/spaning) investigation with role-based truthfulness, anti-blowout double-point scoring, one-by-one dramatic role reveal
 
 ## Progress
 
@@ -95,4 +95,4 @@ Phases execute in numeric order: 1 --> 2 --> 3 --> 4 --> 5
 | 2. Game Lobby | 3/3 | ✓ Complete | 2026-02-10 |
 | 3. Game Loop | 4/4 | ✓ Complete | 2026-02-10 |
 | 4. AI Guzman | 3/3 | ✓ Complete | 2026-02-10 |
-| 5. Engagement | 0/2 | Not started | - |
+| 5. Engagement | 0/2 | In Progress | - |
