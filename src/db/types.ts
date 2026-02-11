@@ -149,6 +149,13 @@ export type GuzmanContext = {
   }>;
   playerNotes: Record<string, string>;
   mood: string;
+  behavioralHistory?: Record<string, Array<{
+    round: number;
+    messageCount: number;
+    avgLength: number;
+    frequency: number;
+    primaryTone: string;
+  }>>;
 };
 
 /** Truth level for Guzman whisper messages */
