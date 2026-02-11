@@ -402,6 +402,104 @@ export async function analyzeBehavior(gameId: string): Promise<{
 }
 
 // ---------------------------------------------------------------------------
+// Whisper data preparation helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * All tone keywords flattened into a single array for scoring.
+ * Used by selectQuotesForWhisper to identify messages with behavioral signal.
+ */
+const ALL_TONE_KEYWORDS: string[] = Object.values(TONE_KEYWORDS).flat();
+
+/**
+ * Select the highest-signal messages from a player's recent messages for
+ * whisper context. The AI will paraphrase these as gossip -- they are NEVER
+ * passed to players verbatim (WHISP-03, CONST-03).
+ *
+ * Selection heuristic: score by (a) message length, (b) tone keyword
+ * richness, (c) presence of other player name mentions. Sort descending,
+ * take top `count`.
+ *
+ * @param messages - The player's recent messages (from getRecentPlayerMessages).
+ * @param count - Maximum number of quotes to return (default 2).
+ * @returns Raw message_text strings (the AI will paraphrase, not us).
+ */
+export function selectQuotesForWhisper(
+  messages: PlayerMessage[],
+  count: number = 2,
+): string[] {
+  if (messages.length === 0) return [];
+  if (messages.length === 1) return [messages[0].message_text];
+
+  const scored = messages.map((msg) => {
+    let score = 0;
+
+    // (a) Message length -- longer messages contain more content to work with
+    score += msg.message_text.length;
+
+    // (b) Keyword richness -- count how many tone keywords appear
+    const normalized = msg.message_text.normalize("NFC").toLowerCase();
+    for (const keyword of ALL_TONE_KEYWORDS) {
+      if (normalized.includes(keyword.normalize("NFC").toLowerCase())) {
+        score += 20;
+      }
+    }
+
+    // (c) Presence of @mentions or name-like patterns (uppercase-starting words)
+    //     A rough proxy for mentioning other players
+    const mentionMatches = msg.message_text.match(/@\w+/g);
+    if (mentionMatches) {
+      score += mentionMatches.length * 15;
+    }
+
+    return { text: msg.message_text, score };
+  });
+
+  // Sort by score descending, take top `count`
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, count).map((s) => s.text);
+}
+
+/**
+ * Build a compressed overview string of all players' behavioral state for
+ * use in whisper prompts. Excludes the target player (they get their own
+ * section in the prompt).
+ *
+ * Format: one line per player, e.g.
+ *   "Ahmed: anklagande, hög aktivitet | Sara: tyst, inaktiv | ..."
+ *
+ * Hard-capped at 500 characters to respect CONST-02 token budget.
+ *
+ * @param playerNotes - All playerNotes from GuzmanContext.
+ * @param targetName - The target player's display name (excluded from overview).
+ * @returns Compressed overview string, or fallback if no data available.
+ */
+export function buildAllPlayerOverview(
+  playerNotes: Record<string, string>,
+  targetName: string,
+): string {
+  const entries: string[] = [];
+
+  for (const [name, note] of Object.entries(playerNotes)) {
+    if (name === targetName) continue;
+    entries.push(`${name}: ${note}`);
+  }
+
+  if (entries.length === 0) {
+    return "Ingen info om andra spelare";
+  }
+
+  const joined = entries.join(" | ");
+
+  // Hard-cap at 500 characters
+  if (joined.length > 500) {
+    return joined.slice(0, 497) + "...";
+  }
+
+  return joined;
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
