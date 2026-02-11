@@ -210,3 +210,19 @@ CREATE TABLE IF NOT EXISTS surveillance (
 );
 
 CREATE INDEX IF NOT EXISTS idx_surveillance_game_id ON surveillance (game_id);
+
+-- ---------------------------------------------------------------------------
+-- Player Spaning: investigation usage tracking (one per player per game)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS player_spanings (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  game_id           UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+  player_id         UUID NOT NULL REFERENCES game_players(id),
+  target_player_id  UUID NOT NULL REFERENCES game_players(id),
+  answer_truthful   BOOLEAN NOT NULL,
+  answer_message    TEXT NOT NULL,
+  used_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT unique_spaning_per_player UNIQUE (game_id, player_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_player_spanings_game_id ON player_spanings (game_id);

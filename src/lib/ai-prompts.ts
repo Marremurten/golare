@@ -243,6 +243,54 @@ Håll det under 600 tecken. Använd <b> och <i>.`;
 }
 
 /**
+ * Build the prompt for a Spaning investigation answer.
+ *
+ * For Akta (cryptic): Guzman gives a vague, hedged answer about the target.
+ * For Hogra Hand (direct): Guzman states the target's role clearly.
+ */
+export function buildSpaningPrompt(
+  targetName: string,
+  targetRole: PlayerRole,
+  isTruthful: boolean,
+  investigatorRole: "akta" | "hogra_hand",
+  gameContext: GuzmanContext,
+): string {
+  if (investigatorRole === "hogra_hand") {
+    // Hogra Hand: direct and truthful, always
+    return `Du pratar privat med Guzmans Högra Hand. Den bad dig kolla upp <b>${targetName}</b>.
+
+HEMLIGT: ${targetName} har rollen ${targetRole}.
+
+UPPGIFT:
+Säg rakt ut vad ${targetName}s roll är. Var kort, direkt, och bestämd. Det här är mellan Guzman och hans mest betrodda person.
+
+SPELKONTEXT:
+- Stämning: ${gameContext.mood}
+
+Håll det under 300 tecken. Använd <b> och <i>.`;
+  }
+
+  // Akta: cryptic and potentially misleading
+  const truthInstruction = isTruthful
+    ? `Ge en KORREKT men VAGT formulerad ledtråd om att ${targetName} har rollen ${targetRole}. Använd metaforer, känsla, magkänsla -- aldrig säg rollen rakt ut.`
+    : `GE EN FELAKTIG ledtråd. ${targetName} har rollen ${targetRole}, men antyda att den har en ANNAN roll. Var vag och använd Guzmans "känsla" som ursäkt.`;
+
+  return `Nån i familjen (Äkta) bad Guzman kolla upp <b>${targetName}</b> via Spaning-förmågan.
+
+HEMLIGT: ${targetName} har rollen ${targetRole}.
+INSTRUKTION: ${truthInstruction}
+
+SPELKONTEXT:
+- Stämning: ${gameContext.mood}
+- Story-arc: ${gameContext.storyArc || "Inget ännu"}
+
+UPPGIFT:
+Svara som Guzman. Det ska kännas som hans "magkänsla" -- aldrig ett definitivt svar. Avsluta med att du kan ha fel. Max 500 tecken.
+
+Håll det under 500 tecken. Använd <b> och <i>.`;
+}
+
+/**
  * Build the prompt for generating a surveillance clue about a target player.
  *
  * The clue should be action-based/behavior-based, not a direct role reveal.

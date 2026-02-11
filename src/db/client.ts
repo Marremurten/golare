@@ -21,6 +21,8 @@ import type {
   AnonymousWhisperInsert,
   Surveillance,
   SurveillanceInsert,
+  PlayerSpaning,
+  PlayerSpaningInsert,
 } from "./types.js";
 import { config } from "../config.js";
 
@@ -855,4 +857,51 @@ export async function getSurveillanceForPlayerInRound(
   }
 
   return data as Surveillance | null;
+}
+
+// ---------------------------------------------------------------------------
+// Spaning CRUD (Phase 5, Plan 02)
+// ---------------------------------------------------------------------------
+
+/**
+ * Create a player spaning record. UNIQUE constraint on (game_id, player_id)
+ * enforces one-per-game. Callers must catch unique violation for
+ * "already used" feedback (same pattern as createSistaChansen).
+ */
+export async function createPlayerSpaning(
+  spaning: PlayerSpaningInsert,
+): Promise<PlayerSpaning> {
+  const { data, error } = await supabase
+    .from("player_spanings")
+    .insert(spaning)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(`createPlayerSpaning failed: ${error.message}`);
+  }
+
+  return data as PlayerSpaning;
+}
+
+/**
+ * Check if a player has already used their Spaning in this game.
+ * Returns the existing record or null.
+ */
+export async function getPlayerSpaning(
+  gameId: string,
+  playerId: string,
+): Promise<PlayerSpaning | null> {
+  const { data, error } = await supabase
+    .from("player_spanings")
+    .select("*")
+    .eq("game_id", gameId)
+    .eq("player_id", playerId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`getPlayerSpaning failed: ${error.message}`);
+  }
+
+  return data as PlayerSpaning | null;
 }

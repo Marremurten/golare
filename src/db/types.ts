@@ -210,6 +210,20 @@ export type Surveillance = {
 /** Fields for inserting a new surveillance record (id and created_at are auto-generated) */
 export type SurveillanceInsert = Omit<Surveillance, "id" | "created_at">;
 
+/** Full player_spanings row as returned from the database */
+export type PlayerSpaning = {
+  id: string;
+  game_id: string;
+  player_id: string;
+  target_player_id: string;
+  answer_truthful: boolean;
+  answer_message: string;
+  used_at: string;
+};
+
+/** Fields for inserting a new player spaning (id and used_at are auto-generated) */
+export type PlayerSpaningInsert = Omit<PlayerSpaning, "id" | "used_at">;
+
 // ---------------------------------------------------------------------------
 // Supabase Database type definition
 // ---------------------------------------------------------------------------
@@ -364,6 +378,31 @@ export type Database = {
           },
           {
             foreignKeyName: "surveillance_target_player_id_fkey";
+            columns: ["target_player_id"];
+            referencedRelation: "game_players";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      player_spanings: {
+        Row: PlayerSpaning;
+        Insert: PlayerSpaningInsert;
+        Update: Partial<PlayerSpaning>;
+        Relationships: [
+          {
+            foreignKeyName: "player_spanings_game_id_fkey";
+            columns: ["game_id"];
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "player_spanings_player_id_fkey";
+            columns: ["player_id"];
+            referencedRelation: "game_players";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "player_spanings_target_player_id_fkey";
             columns: ["target_player_id"];
             referencedRelation: "game_players";
             referencedColumns: ["id"];

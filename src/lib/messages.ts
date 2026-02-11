@@ -639,6 +639,43 @@ export const MESSAGES = {
     `Jag kollade på <b>${targetName}</b> åt dig, bre...\n\n` +
     "Svårt att säga. Antingen spelar den personen sitt spel bra, " +
     "eller så har den inget att dölja. 🤔",
+
+  // -------------------------------------------------------------------------
+  // Spaning messages (Phase 5, Plan 02)
+  // -------------------------------------------------------------------------
+
+  /** Spaning: prompt to choose who to investigate */
+  SPANING_TARGET_PROMPT: "Vem vill du undersöka, bre? Du har bara EN chans i hela spelet. Välj klokt. 🔍",
+
+  /** Spaning: already used */
+  SPANING_ALREADY_USED: "Du har redan använt din Spaning i det här spelet, bre. En gång är en gång. 🔒",
+
+  /** Spaning: only Akta and Hogra Hand can use it */
+  SPANING_WRONG_ROLE: "Den här förmågan är inte för dig, bre. 🚫",
+
+  /** Spaning: group notification (no details about who or target) */
+  SPANING_GROUP_NOTIFICATION: "Någon har bett mig kolla runt... intressant. Mycket intressant. 🔍",
+
+  /** Spaning: template fallback for Akta (cryptic) */
+  SPANING_AKTA_TEMPLATE: (targetName: string, isTruthful: boolean, targetRole: string) => {
+    const roleName = targetRole === "golare" ? "en råtta" : targetRole === "hogra_hand" ? "någon speciell" : "lojal";
+    if (isTruthful) {
+      return `Jag kollade på <b>${targetName}</b> åt dig, bre...\n\n` +
+        `Min känsla säger att den personen är... ${roleName}. ` +
+        "Men lita inte blint på mig -- jag har haft fel förr. 🤔";
+    }
+    // Lie: give wrong role hint
+    const lieRole = targetRole === "golare" ? "lojal" : "en råtta";
+    return `Jag kollade på <b>${targetName}</b> åt dig, bre...\n\n` +
+      `Min känsla säger att den personen är... ${lieRole}. ` +
+      "Men lita inte blint på mig -- jag har haft fel förr. 🤔";
+  },
+
+  /** Spaning: template fallback for Hogra Hand (direct, truthful) */
+  SPANING_HOGRA_HAND_TEMPLATE: (targetName: string, targetRole: string) => {
+    const roleName = targetRole === "golare" ? "GOLARE 🐀" : targetRole === "hogra_hand" ? "Guzmans Högra Hand 🔍" : "ÄKTA ✅";
+    return `Lyssna noga, bre. <b>${targetName}</b> är <b>${roleName}</b>. Punkt. 🎯`;
+  },
 } as const;
 
 /**

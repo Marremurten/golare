@@ -9,6 +9,7 @@ import {
   buildGapFillPrompt,
   buildWhisperRelayPrompt,
   buildSurveillanceCluePrompt,
+  buildSpaningPrompt,
 } from "./ai-prompts.js";
 import { MESSAGES } from "./messages.js";
 import {
@@ -370,6 +371,74 @@ export async function generateSurveillanceClue(
       error instanceof Error ? error.message : error,
     );
     return MESSAGES.SURVEILLANCE_CLUE_TEMPLATE(targetName);
+  }
+}
+
+/**
+ * Generate a Spaning investigation answer for a player.
+ * - Akta: uses MODEL_MAP.whisper (gpt-4o-mini) for nuanced, cryptic answers
+ * - Hogra Hand: uses MODEL_MAP.commentary (gpt-4.1-nano) for direct, simple answers
+ * Falls back to template messages on any failure.
+ */
+export async function generateSpaningAnswer(
+  targetName: string,
+  targetRole: PlayerRole,
+  isTruthful: boolean,
+  investigatorRole: "akta" | "hogra_hand",
+  gameContext: GuzmanContext,
+): Promise<string> {
+  try {
+    const client = getAIClient();
+    if (!client) {
+      return investigatorRole === "hogra_hand"
+        ? MESSAGES.SPANING_HOGRA_HAND_TEMPLATE(targetName, targetRole)
+        : MESSAGES.SPANING_AKTA_TEMPLATE(targetName, isTruthful, targetRole);
+    }
+
+    const model = investigatorRole === "hogra_hand"
+      ? MODEL_MAP.commentary
+      : MODEL_MAP.whisper;
+
+    const maxTokens = investigatorRole === "hogra_hand" ? 200 : 400;
+
+    const response = await client.chat.completions.create({
+      model,
+      messages: [
+        { role: "system", content: buildGuzmanSystemPrompt() },
+        {
+          role: "user",
+          content: buildSpaningPrompt(
+            targetName,
+            targetRole,
+            isTruthful,
+            investigatorRole,
+            gameContext,
+          ),
+        },
+      ],
+      max_tokens: maxTokens,
+      temperature: 0.9,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      console.warn(
+        "[ai-guzman] Empty response for spaning answer, using template",
+      );
+      return investigatorRole === "hogra_hand"
+        ? MESSAGES.SPANING_HOGRA_HAND_TEMPLATE(targetName, targetRole)
+        : MESSAGES.SPANING_AKTA_TEMPLATE(targetName, isTruthful, targetRole);
+    }
+
+    return sanitizeForTelegram(content);
+  } catch (error) {
+    console.warn(
+      "[ai-guzman] Spaning answer generation failed, using template:",
+      error instanceof Error ? error.message : error,
+    );
+    return investigatorRole === "hogra_hand"
+      ? MESSAGES.SPANING_HOGRA_HAND_TEMPLATE(targetName, targetRole)
+      : MESSAGES.SPANING_AKTA_TEMPLATE(targetName, isTruthful, targetRole);
   }
 }
 

@@ -10,7 +10,9 @@
  *   2. Whisper target callback (wt:...)
  *   3. /spana command (DM only)
  *   4. Surveillance target callback (sp:...)
- *   5. Freeform text handler (MUST be LAST -- captures whisper content)
+ *   5. /spaning command (DM only)
+ *   6. Spaning target callback (sn:...)
+ *   7. Freeform text handler (MUST be LAST -- captures whisper content)
  */
 
 import { Composer, InlineKeyboard } from "grammy";
@@ -23,10 +25,13 @@ import {
   createAnonymousWhisper,
   createSurveillance,
   getSurveillanceForPlayerInRound,
+  getPlayerSpaning,
+  createPlayerSpaning,
 } from "../db/client.js";
 import {
   generateWhisperRelay,
   generateSurveillanceClue,
+  generateSpaningAnswer,
   getGuzmanContext,
 } from "../lib/ai-guzman.js";
 import { MESSAGES } from "../lib/messages.js";
@@ -417,7 +422,148 @@ engagementHandler.callbackQuery(
 );
 
 // ---------------------------------------------------------------------------
-// 5. Freeform text handler (captures whisper content -- MUST BE LAST)
+// 5. /spaning command (DM only)
+// ---------------------------------------------------------------------------
+
+engagementHandler.chatType("private").command("spaning", async (ctx) => {
+  const context = await getActiveGameContext(ctx.from.id);
+  if (!context) {
+    await ctx.reply(MESSAGES.ENGAGEMENT_NO_GAME);
+    return;
+  }
+
+  const { game, gamePlayer, round, players } = context;
+
+  if (game.state !== "active") {
+    await ctx.reply(MESSAGES.ENGAGEMENT_WRONG_PHASE);
+    return;
+  }
+
+  // Only akta and hogra_hand can use Spaning
+  const role = gamePlayer.role as PlayerRole;
+  if (role === "golare") {
+    await ctx.reply(MESSAGES.SPANING_WRONG_ROLE);
+    return;
+  }
+
+  // Check if already used (one per game)
+  const existing = await getPlayerSpaning(game.id, gamePlayer.id);
+  if (existing) {
+    await ctx.reply(MESSAGES.SPANING_ALREADY_USED);
+    return;
+  }
+
+  // Build inline keyboard with ALL other players (exclude self)
+  const kb = new InlineKeyboard();
+  const otherPlayers = players.filter((p) => p.id !== gamePlayer.id);
+  for (let i = 0; i < otherPlayers.length; i++) {
+    kb.text(displayName(otherPlayers[i].players), `sn:${game.id}:${i}`).row();
+  }
+
+  await ctx.reply(MESSAGES.SPANING_TARGET_PROMPT, { reply_markup: kb });
+});
+
+// ---------------------------------------------------------------------------
+// 6. Spaning target callback (sn:{gameId}:{index})
+// ---------------------------------------------------------------------------
+
+engagementHandler.callbackQuery(/^sn:(.+):(\d+)$/, async (ctx) => {
+  const match = ctx.match!;
+  const gameId = match[1];
+  const targetIndex = parseInt(match[2], 10);
+
+  // Re-verify context (race condition check)
+  const context = await getActiveGameContext(ctx.from.id);
+  if (!context || context.game.id !== gameId) {
+    await ctx.answerCallbackQuery(MESSAGES.ENGAGEMENT_NO_GAME);
+    return;
+  }
+
+  const { game, gamePlayer, round, players } = context;
+
+  if (game.state !== "active") {
+    await ctx.answerCallbackQuery(MESSAGES.ENGAGEMENT_WRONG_PHASE);
+    return;
+  }
+
+  // Re-verify role
+  const role = gamePlayer.role as PlayerRole;
+  if (role === "golare") {
+    await ctx.answerCallbackQuery(MESSAGES.SPANING_WRONG_ROLE);
+    return;
+  }
+
+  // Race condition: check again if already used
+  const existing = await getPlayerSpaning(game.id, gamePlayer.id);
+  if (existing) {
+    await ctx.answerCallbackQuery(MESSAGES.SPANING_ALREADY_USED);
+    return;
+  }
+
+  // Resolve target from ordered players (excluding self)
+  const otherPlayers = players.filter((p) => p.id !== gamePlayer.id);
+  const targetPlayer = otherPlayers[targetIndex];
+  if (!targetPlayer) {
+    await ctx.answerCallbackQuery("Ogiltig spelare, bre. 🤷");
+    return;
+  }
+
+  const targetName = displayName(targetPlayer.players);
+  const targetRole = targetPlayer.role as PlayerRole;
+
+  // Determine truthfulness
+  const investigatorRole = role === "hogra_hand" ? "hogra_hand" as const : "akta" as const;
+  const isTruthful = investigatorRole === "hogra_hand"
+    ? true
+    : randomInt(0, 100) < 75;
+
+  // Generate AI answer
+  const guzmanCtx = await getGuzmanContext(game.id);
+  const answerMessage = await generateSpaningAnswer(
+    targetName,
+    targetRole,
+    isTruthful,
+    investigatorRole,
+    guzmanCtx,
+  );
+
+  // ATOMIC INSERT: try createPlayerSpaning. Catch unique violation -> already used
+  try {
+    await createPlayerSpaning({
+      game_id: game.id,
+      player_id: gamePlayer.id,
+      target_player_id: targetPlayer.id,
+      answer_truthful: isTruthful,
+      answer_message: answerMessage,
+    });
+  } catch (_err) {
+    // Unique violation -- someone already used it (race condition)
+    await ctx.answerCallbackQuery(MESSAGES.SPANING_ALREADY_USED);
+    return;
+  }
+
+  // Send answer to player's DM
+  await ctx.editMessageText(answerMessage, { parse_mode: "HTML" });
+
+  // Send anonymous group notification
+  const queue = getMessageQueue();
+  await queue.send(
+    game.group_chat_id,
+    MESSAGES.SPANING_GROUP_NOTIFICATION,
+    { parse_mode: "HTML" },
+  );
+
+  await ctx.answerCallbackQuery();
+
+  console.log(
+    `[engagement] Spaning: ${displayName(
+      (players.find((p) => p.id === gamePlayer.id) as PlayerWithInfo).players,
+    )} -> ${targetName} (role=${investigatorRole}, truthful=${isTruthful}) in game ${game.id}`,
+  );
+});
+
+// ---------------------------------------------------------------------------
+// 7. Freeform text handler (captures whisper content -- MUST BE LAST)
 // ---------------------------------------------------------------------------
 
 engagementHandler
