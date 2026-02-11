@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 
 ## Current Position
 
-Phase: Ready for planning (Phase 1)
-Plan: —
-Status: Research complete, requirements defined, roadmap created. Ready to plan Phase 1.
-Last activity: 2026-02-11 — v1.1 research + requirements + roadmap complete
+Phase: 01-data-pipeline
+Plan: 01 complete, ready for 02
+Status: Plan 01-01 executed. player_messages data layer complete.
+Last activity: 2026-02-11 — 01-01 player_messages data layer complete
 
-Progress: [..........] 0% (v1.1 — 0/5 phases)
+Progress: [..........] 0% (v1.1 — 0/5 phases, 1 plan complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
+- Total plans completed: 16
 - Average duration: 6min
-- Total execution time: 1.52 hours
+- Total execution time: 1.55 hours
 
 **By Phase:**
 
@@ -32,6 +32,8 @@ Progress: [..........] 0% (v1.1 — 0/5 phases)
 | 03-game-loop | 4/4 | 26min | 6.5min |
 | 04-ai-guzman | 3/3 | 12min | 4min |
 | 05-engagement | 2/2 | 10min | 5min |
+| **v1.1** | | | |
+| 01-data-pipeline | 1/? | 2min | 2min |
 
 ## Accumulated Context
 
@@ -45,6 +47,10 @@ Key patterns established in v1:
 - Template fallbacks on all AI paths
 - Tiered AI models (gpt-4o-mini / gpt-4.1-nano)
 
+v1.1 decisions:
+- Ring buffer pruning via PostgreSQL trigger (not application code)
+- Fire-and-forget insert for message capture (no select return needed)
+
 ### Pending Todos
 
 None.
@@ -57,5 +63,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: v1.1 roadmap created. Ready to plan Phase 1: Data Pipeline.
+Stopped at: Completed 01-01-PLAN.md. Ready for 01-02 (message capture middleware).
 Resume file: None
