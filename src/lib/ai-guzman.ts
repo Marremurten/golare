@@ -10,6 +10,7 @@ import {
   buildWhisperRelayPrompt,
   buildSurveillanceCluePrompt,
   buildSpaningPrompt,
+  buildIndividualRevealPrompt,
 } from "./ai-prompts.js";
 import { MESSAGES } from "./messages.js";
 import {
@@ -439,6 +440,54 @@ export async function generateSpaningAnswer(
     return investigatorRole === "hogra_hand"
       ? MESSAGES.SPANING_HOGRA_HAND_TEMPLATE(targetName, targetRole)
       : MESSAGES.SPANING_AKTA_TEMPLATE(targetName, isTruthful, targetRole);
+  }
+}
+
+/**
+ * Generate a dramatic individual role reveal message for a player.
+ * Uses MODEL_MAP.commentary (gpt-4.1-nano) for cost efficiency -- these are short.
+ * Falls back to MESSAGES.ROLE_REVEAL_INDIVIDUAL on any failure.
+ */
+export async function generateIndividualReveal(
+  playerName: string,
+  role: PlayerRole,
+  isLast: boolean,
+  gameContext: GuzmanContext,
+): Promise<string> {
+  try {
+    const client = getAIClient();
+    if (!client) {
+      return MESSAGES.ROLE_REVEAL_INDIVIDUAL(playerName, role);
+    }
+
+    const response = await client.chat.completions.create({
+      model: MODEL_MAP.commentary,
+      messages: [
+        { role: "system", content: buildGuzmanSystemPrompt() },
+        {
+          role: "user",
+          content: buildIndividualRevealPrompt(playerName, role, isLast, gameContext),
+        },
+      ],
+      max_tokens: 300,
+      temperature: 0.9,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      console.warn(
+        "[ai-guzman] Empty response for individual reveal, using template",
+      );
+      return MESSAGES.ROLE_REVEAL_INDIVIDUAL(playerName, role);
+    }
+
+    return sanitizeForTelegram(content);
+  } catch (error) {
+    console.warn(
+      "[ai-guzman] Individual reveal generation failed, using template:",
+      error instanceof Error ? error.message : error,
+    );
+    return MESSAGES.ROLE_REVEAL_INDIVIDUAL(playerName, role);
   }
 }
 

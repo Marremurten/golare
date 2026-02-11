@@ -323,3 +323,48 @@ Börja med "Jag kollade på <b>${targetName}</b> åt dig, bre..." och ge sedan l
 
 Håll det under 400 tecken. Använd <b> och <i>.`;
 }
+
+/**
+ * Build the prompt for a dramatic individual role reveal at game end.
+ *
+ * - Akta: warm, relieved tone ("familjen")
+ * - Hogra Hand: respectful, mysterious
+ * - Golare: DRAMATIC betrayal reveal, maximum suspense
+ */
+export function buildIndividualRevealPrompt(
+  playerName: string,
+  role: PlayerRole,
+  isLast: boolean,
+  gameContext: GuzmanContext,
+): string {
+  let toneInstruction: string;
+
+  if (role === "akta") {
+    toneInstruction = `${playerName} är ÄKTA -- en lojal familjemedlem. Ton: varm, lättad. "Familjen." Kort.`;
+  } else if (role === "hogra_hand") {
+    toneInstruction = `${playerName} är GUZMANS HÖGRA HAND -- Guzmans mest betrodda. Ton: respektfull, mystisk. "Min betrodda." Kort.`;
+  } else {
+    // Golare
+    if (isLast) {
+      toneInstruction = `${playerName} är GOLARE -- den sista avslöjningen! MAXIMAL DRAMATIK. Paus, spänning, förråd. Det här är klimaxet.`;
+    } else {
+      toneInstruction = `${playerName} är GOLARE -- en förrädare! Ton: dramatiskt avslöjande, ilska, svek. "En råtta bland oss."`;
+    }
+  }
+
+  return `Avslöja en spelares roll i slutet av spelet. EN spelare i taget.
+
+SPELARE: ${playerName}
+ROLL: ${role}
+${isLast ? "DETTA ÄR DEN SISTA AVSLÖJNINGEN -- GÖR DET EPISKT." : ""}
+
+TON: ${toneInstruction}
+
+SPELKONTEXT:
+- Stämning: ${gameContext.mood}
+
+UPPGIFT:
+Skriv ett kort, dramatiskt avslöjande av ${playerName}s roll. Inkludera spelarens namn i <b>bold</b> och rollnamnet. Max en mening + en emoji-reaktion.
+
+Håll det under 300 tecken. Använd <b> och <i>.`;
+}

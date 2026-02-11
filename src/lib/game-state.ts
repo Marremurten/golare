@@ -170,3 +170,16 @@ export function checkWinCondition(
   if (ainaScore >= 3) return "aina";
   return null;
 }
+
+// ---------------------------------------------------------------------------
+// Anti-blowout scoring (Phase 5, Plan 02)
+// ---------------------------------------------------------------------------
+
+/**
+ * Calculate points awarded for a round, considering anti-blowout.
+ * Rounds 4 and 5 are worth double points (2 instead of 1).
+ * Score is always capped at 3 by the caller (first-to-3 rule).
+ */
+export function getRoundPointValue(roundNumber: number): number {
+  return roundNumber >= 4 ? 2 : 1;
+}

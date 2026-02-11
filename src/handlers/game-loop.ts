@@ -44,7 +44,7 @@ import {
   getSistaChansen,
   updateSistaChansen,
 } from "../db/client.js";
-import type { Game, GamePlayer, Player, Round, SistaChansen, GuessingSide } from "../db/types.js";
+import type { Game, GamePlayer, Player, Round, SistaChansen, GuessingSide, GuzmanContext, PlayerRole } from "../db/types.js";
 import {
   nextRoundPhase,
   getCapoIndex,
@@ -53,11 +53,13 @@ import {
   checkWinCondition,
   getTeamSize,
   getSistaChansenSide,
+  getRoundPointValue,
 } from "../lib/game-state.js";
 import { MESSAGES } from "../lib/messages.js";
 import {
   generateMissionNarrative,
   generateResultReveal,
+  generateIndividualReveal,
   updateNarrativeContext,
   getGuzmanContext,
 } from "../lib/ai-guzman.js";
@@ -463,18 +465,49 @@ async function performFinalReveal(
   }
   await sleep(suspenseDelay);
 
-  // 4. Full role reveal
+  // 4. One-by-one role reveal (replaces batch FINAL_REVEAL)
   const players = await getGamePlayersOrderedWithInfo(game.id);
-  const roleData = players.map((p) => ({
-    name: displayName(p.players),
-    role: p.role ?? "akta",
-  }));
 
-  await queue.send(
-    groupChatId,
-    MESSAGES.FINAL_REVEAL(roleData),
-    { parse_mode: "HTML" },
+  // Sort: akta first, hogra_hand middle, golare last
+  const sortOrder: Record<string, number> = {
+    akta: 0,
+    hogra_hand: 1,
+    golare: 2,
+  };
+  const sortedPlayers = [...players].sort(
+    (a, b) => (sortOrder[a.role ?? "akta"] ?? 0) - (sortOrder[b.role ?? "akta"] ?? 0),
   );
+
+  // Intro message
+  await queue.send(groupChatId, MESSAGES.ROLE_REVEAL_INTRO, { parse_mode: "HTML" });
+  await sleep(suspenseDelay);
+
+  // Load Guzman context for AI reveals
+  let guzmanCtx: GuzmanContext | null = null;
+  try {
+    guzmanCtx = await getGuzmanContext(game.id);
+  } catch { /* non-critical */ }
+
+  // Reveal each player one by one
+  for (let i = 0; i < sortedPlayers.length; i++) {
+    const player = sortedPlayers[i];
+    const role = player.role ?? "akta";
+    const playerName = displayName(player.players);
+    const isLast = i === sortedPlayers.length - 1;
+
+    let revealMsg: string;
+    try {
+      revealMsg = await generateIndividualReveal(playerName, role as PlayerRole, isLast, guzmanCtx!);
+    } catch {
+      revealMsg = MESSAGES.ROLE_REVEAL_INDIVIDUAL(playerName, role);
+    }
+
+    await queue.send(groupChatId, revealMsg, { parse_mode: "HTML" });
+    await sleep(suspenseDelay);
+  }
+
+  // Finale message
+  await queue.send(groupChatId, MESSAGES.ROLE_REVEAL_FINALE, { parse_mode: "HTML" });
 
   // 5. Set game state to finished
   await updateGame(game.id, { state: "finished" });
@@ -521,9 +554,14 @@ async function resolveExecution(
     ligan_point: liganPoint,
   });
 
-  // Update game scores
-  const newLiganScore = success ? game.ligan_score + 1 : game.ligan_score;
-  const newAinaScore = success ? game.aina_score : game.aina_score + 1;
+  // Update game scores (double points in rounds 4-5, capped at 3)
+  const pointValue = getRoundPointValue(round.round_number);
+  const newLiganScore = success
+    ? Math.min(game.ligan_score + pointValue, 3)
+    : game.ligan_score;
+  const newAinaScore = success
+    ? game.aina_score
+    : Math.min(game.aina_score + pointValue, 3);
   await updateGame(game.id, {
     ligan_score: newLiganScore,
     aina_score: newAinaScore,
@@ -561,10 +599,13 @@ async function resolveExecution(
     parse_mode: "HTML",
   });
 
-  // Send score update
+  // Send score update (double-point variant for rounds 4-5)
+  const scoreMsg = pointValue > 1
+    ? MESSAGES.SCORE_UPDATE_DOUBLE(newLiganScore, newAinaScore, round.round_number, pointValue)
+    : MESSAGES.SCORE_UPDATE(newLiganScore, newAinaScore, round.round_number);
   await queue.send(
     game.group_chat_id,
-    MESSAGES.SCORE_UPDATE(newLiganScore, newAinaScore, round.round_number),
+    scoreMsg,
     { parse_mode: "HTML" },
   );
 
@@ -677,14 +718,18 @@ async function handleKaosFail(
     ligan_point: false,
   });
 
-  // Update game score
-  const newAinaScore = game.aina_score + 1;
+  // Update game score (double points in rounds 4-5, capped at 3)
+  const pointValue = getRoundPointValue(round.round_number);
+  const newAinaScore = Math.min(game.aina_score + pointValue, 3);
   await updateGame(game.id, { aina_score: newAinaScore });
 
-  // Send score update
+  // Send score update (double-point variant for rounds 4-5)
+  const scoreMsg = pointValue > 1
+    ? MESSAGES.SCORE_UPDATE_DOUBLE(game.ligan_score, newAinaScore, round.round_number, pointValue)
+    : MESSAGES.SCORE_UPDATE(game.ligan_score, newAinaScore, round.round_number);
   await queue.send(
     game.group_chat_id,
-    MESSAGES.SCORE_UPDATE(game.ligan_score, newAinaScore, round.round_number),
+    scoreMsg,
     { parse_mode: "HTML" },
   );
 

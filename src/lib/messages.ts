@@ -676,6 +676,31 @@ export const MESSAGES = {
     const roleName = targetRole === "golare" ? "GOLARE 🐀" : targetRole === "hogra_hand" ? "Guzmans Högra Hand 🔍" : "ÄKTA ✅";
     return `Lyssna noga, bre. <b>${targetName}</b> är <b>${roleName}</b>. Punkt. 🎯`;
   },
+
+  // -------------------------------------------------------------------------
+  // Role reveal and double scoring messages (Phase 5, Plan 02)
+  // -------------------------------------------------------------------------
+
+  /** Role reveal: intro message before individual reveals */
+  ROLE_REVEAL_INTRO: "<b>ROLLERNA AVSLÖJAS</b> 🎭\n\nEn i taget, bre... 👀",
+
+  /** Role reveal: template fallback for individual reveal */
+  ROLE_REVEAL_INDIVIDUAL: (playerName: string, role: string) => {
+    const emoji = role === "golare" ? "🐀" : role === "hogra_hand" ? "🔍" : "👤";
+    const roleName = role === "golare" ? "GOLARE" : role === "hogra_hand" ? "Guzmans Högra Hand" : "Äkta";
+    return `${emoji} <b>${playerName}</b> -- ${roleName}`;
+  },
+
+  /** Role reveal: finale message after all reveals */
+  ROLE_REVEAL_FINALE: "Spelet är slut. Nu vet ni allt, bre. GG, familjen. 🤝",
+
+  /** Score update with double point info (rounds 4-5) */
+  SCORE_UPDATE_DOUBLE: (liganScore: number, ainaScore: number, roundNumber: number, pointValue: number) =>
+    `<b>Ställning efter runda ${roundNumber}:</b>\n\n` +
+    `  Ligan: ${liganScore} 💰\n` +
+    `  Aina: ${ainaScore} 🔵\n\n` +
+    `${pointValue > 1 ? `<i>Dubbelpoäng! Runda ${roundNumber} var värd ${pointValue} poäng.</i>\n\n` : ""}` +
+    `Först till 3 vinner. ${5 - roundNumber > 0 ? `${5 - roundNumber} rundor kvar.` : "Sista rundan spelad."}`,
 } as const;
 
 /**
