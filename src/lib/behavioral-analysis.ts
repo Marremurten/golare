@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import {
   getAllRecentMessages,
   getGamePlayersWithInfo,
@@ -497,6 +498,98 @@ export function buildAllPlayerOverview(
   }
 
   return joined;
+}
+
+// ---------------------------------------------------------------------------
+// Group mood computation and accusation target selection
+// ---------------------------------------------------------------------------
+
+export type GroupMood = "tense" | "active" | "calm";
+
+/**
+ * Compute the overall group mood from playerNotes values.
+ *
+ * PlayerNotes values look like:
+ *   "Ton: anklagande | Aktivitet: hög | Anomali: aggressionsökning"
+ *
+ * Decision logic:
+ * - < 2 entries -> "active" (default when insufficient data)
+ * - >= 40% tense signals -> "tense"
+ * - >= 50% active signals -> "active"
+ * - else -> "calm"
+ */
+export function computeGroupMood(playerNotes: Record<string, string>): GroupMood {
+  const entries = Object.values(playerNotes);
+  const totalPlayers = entries.length;
+
+  if (totalPlayers < 2) return "active";
+
+  let tenseSignals = 0;
+  let activeSignals = 0;
+
+  for (const note of entries) {
+    const lower = note.normalize("NFC").toLowerCase();
+
+    // Tense: tone "anklagande" or anomalies containing "aggression" or "beteendeförändring"
+    if (
+      lower.includes("ton: anklagande") ||
+      lower.includes("aggression") ||
+      lower.includes("beteendeförändring")
+    ) {
+      tenseSignals++;
+    }
+
+    // Active: "Aktivitet: hög" or "Aktivitet: medel"
+    if (lower.includes("aktivitet: hög") || lower.includes("aktivitet: medel")) {
+      activeSignals++;
+    }
+  }
+
+  if (tenseSignals >= totalPlayers * 0.4) return "tense";
+  if (activeSignals >= totalPlayers * 0.5) return "active";
+  return "calm";
+}
+
+/**
+ * Select a player with anomaly signals as an accusation target.
+ *
+ * - Skips lastTargetedName (never same player twice in a row)
+ * - Only players with "Anomali:" followed by something other than "ingen"
+ * - Returns null if no candidates (accusations optional when no anomalies)
+ */
+export function selectAccusationTarget(
+  playerNotes: Record<string, string>,
+  lastTargetedName: string | null,
+): { name: string; anomalies: string; evidence: string } | null {
+  const candidates: { name: string; anomalies: string; evidence: string }[] = [];
+
+  for (const [name, note] of Object.entries(playerNotes)) {
+    // Never target the same player twice in a row
+    if (name === lastTargetedName) continue;
+
+    // Extract anomaly text after "Anomali: "
+    const anomalyMatch = note.match(/Anomali:\s*(.+?)(?:\s*\||$)/);
+    if (!anomalyMatch) continue;
+
+    const anomalyText = anomalyMatch[1].trim();
+    if (anomalyText === "ingen") continue;
+
+    // Extract tone text after "Ton: "
+    const toneMatch = note.match(/Ton:\s*(.+?)(?:\s*\||$)/);
+    const toneText = toneMatch ? toneMatch[1].trim() : "neutral";
+
+    candidates.push({
+      name,
+      anomalies: anomalyText,
+      evidence: toneText,
+    });
+  }
+
+  if (candidates.length === 0) return null;
+
+  // Pick one randomly using cryptographic randomInt
+  const idx = randomInt(0, candidates.length);
+  return candidates[idx];
 }
 
 // ---------------------------------------------------------------------------
