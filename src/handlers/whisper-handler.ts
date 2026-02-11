@@ -352,6 +352,7 @@ async function runGapFill(): Promise<void> {
           guzmanCtx,
           recentActivity,
           playerNames,
+          "active", // Default mood -- Plan 02 will wire computeGroupMood here
         );
 
         // AI unavailable or returned null -- skip silently

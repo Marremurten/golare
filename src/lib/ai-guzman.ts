@@ -7,6 +7,7 @@ import {
   buildResultPrompt,
   buildWhisperPrompt,
   buildGapFillPrompt,
+  buildAccusationPrompt,
   buildWhisperRelayPrompt,
   buildSurveillanceCluePrompt,
   buildSpaningPrompt,
@@ -285,13 +286,14 @@ export async function generateWhisperMessage(
 }
 
 /**
- * Generate a gap-fill comment during quiet periods.
+ * Generate a mood-aware gap-fill comment during quiet periods.
  * Returns null on any failure -- gap-fills are optional.
  */
 export async function generateGapFillComment(
   gameContext: GuzmanContext,
   recentActivity: string,
   playerNames: string[],
+  groupMood: string,
 ): Promise<string | null> {
   try {
     const client = getAIClient();
@@ -305,7 +307,7 @@ export async function generateGapFillComment(
         { role: "system", content: buildGuzmanSystemPrompt() },
         {
           role: "user",
-          content: buildGapFillPrompt(gameContext, recentActivity, playerNames),
+          content: buildGapFillPrompt(gameContext, recentActivity, playerNames, groupMood),
         },
       ],
       max_tokens: 200,
@@ -324,6 +326,60 @@ export async function generateGapFillComment(
   } catch (error) {
     console.warn(
       "[ai-guzman] Gap-fill generation failed, skipping:",
+      error instanceof Error ? error.message : error,
+    );
+    return null;
+  }
+}
+
+/**
+ * Generate a public accusation message targeting a player with observed anomalies.
+ *
+ * Returns null on any failure -- accusations are NEVER templated.
+ * Per "never fabricates" user decision: if AI fails, no accusation is sent.
+ * This is different from other AI functions that fall back to templates.
+ *
+ * No roundNumber parameter -- frequency control (max 2 per round) is the
+ * caller's responsibility, not the generator's.
+ */
+export async function generateAccusation(
+  targetName: string,
+  anomalies: string,
+  evidence: string,
+  playerNames: string[],
+  gameContext: GuzmanContext,
+): Promise<string | null> {
+  try {
+    const client = getAIClient();
+    if (!client) {
+      return null;
+    }
+
+    const response = await client.chat.completions.create({
+      model: MODEL_MAP.commentary,
+      messages: [
+        { role: "system", content: buildGuzmanSystemPrompt() },
+        {
+          role: "user",
+          content: buildAccusationPrompt(targetName, anomalies, evidence, playerNames, gameContext),
+        },
+      ],
+      max_tokens: 200,
+      temperature: 1.0,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      console.warn(
+        "[ai-guzman] Empty response for accusation, skipping (no template fallback)",
+      );
+      return null;
+    }
+
+    return sanitizeForTelegram(content);
+  } catch (error) {
+    console.warn(
+      "[ai-guzman] Accusation generation failed, skipping (no template fallback):",
       error instanceof Error ? error.message : error,
     );
     return null;
