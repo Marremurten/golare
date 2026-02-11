@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 
 ## Current Position
 
-Phase: 03-whisper-integration (IN PROGRESS)
-Plan: 01 of 02 complete.
-Status: Plan 01 complete -- behavioral data helpers and rewritten whisper prompt. Plan 02 (caller updates) next.
-Last activity: 2026-02-11 — 03-01 complete, verified
+Phase: 03-whisper-integration (COMPLETE)
+Plan: 02 of 02 complete.
+Status: Phase 03 complete -- full whisper pipeline wired with behavioral data, verbatim safety, and graceful degradation. Phase 04 next.
+Last activity: 2026-02-11 — 03-02 complete, verified
 
-Progress: [#####.....] 50% (v1.1 -- 2/5 phases, 4 plans complete)
+Progress: [######....] 60% (v1.1 -- 3/5 phases, 5 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 19
+- Total plans completed: 20
 - Average duration: 6min
-- Total execution time: 1.66 hours
+- Total execution time: 1.69 hours
 
 **By Phase:**
 
@@ -35,7 +35,7 @@ Progress: [#####.....] 50% (v1.1 -- 2/5 phases, 4 plans complete)
 | **v1.1** | | | |
 | 01-data-pipeline | 2/2 | 5min | 2.5min |
 | 02-behavioral-analysis | 1/1 | 2min | 2min |
-| 03-whisper-integration | 1/2 | 2min | 2min |
+| 03-whisper-integration | 2/2 | 4min | 2min |
 
 ## Accumulated Context
 
@@ -60,6 +60,8 @@ v1.1 decisions:
 - Round-based whisper escalation: vague (1-2), specific (3), pointed (4-5) -- solves thin-data problem
 - FORSAKRAN as 4th whisper strategy -- trust/reassurance as manipulation alongside truth/half-truth/lie
 - Role-aware prompt calibration: PlayerRole determines Guzman tone (aggressive/seductive/respectful), never content
+- Verbatim safety check: 8-char threshold with single retry, return anyway on second failure (CONST-04)
+- Reassurance truth level mapped to "truth" at ai-guzman boundary (no DB/type migration needed)
 
 ### Pending Todos
 
@@ -73,5 +75,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 03-01-PLAN.md. Phase 03 plan 01 done. Plan 02 (caller updates) next.
+Stopped at: Completed 03-02-PLAN.md. Phase 03 (whisper-integration) fully complete. Phase 04 next.
 Resume file: None
