@@ -45,6 +45,7 @@ import type {
   WhisperTargetType,
 } from "../db/types.js";
 import { randomInt } from "node:crypto";
+import { config } from "../config.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -128,6 +129,7 @@ function isNonTeamPlayer(gamePlayerId: string, round: Round): boolean {
     "reveal",
   ];
   if (!activePhases.includes(round.phase)) return false;
+  if (config.DEV_MODE) return true;
   return !round.team_player_ids.includes(gamePlayerId);
 }
 

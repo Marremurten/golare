@@ -481,7 +481,13 @@ export async function generateIndividualReveal(
       return MESSAGES.ROLE_REVEAL_INDIVIDUAL(playerName, role);
     }
 
-    return sanitizeForTelegram(content);
+    const sanitized = sanitizeForTelegram(content);
+    // Ensure player name is always visible (nano model sometimes omits it)
+    if (!sanitized.includes(playerName)) {
+      const emoji = role === "golare" ? "🐀" : role === "hogra_hand" ? "🔍" : "👤";
+      return `${emoji} <b>${playerName}</b> — ${sanitized}`;
+    }
+    return sanitized;
   } catch (error) {
     console.warn(
       "[ai-guzman] Individual reveal generation failed, using template:",

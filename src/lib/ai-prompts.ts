@@ -166,7 +166,9 @@ Skriv en kort, manipulativ viskning. Välj EN av dessa strategier:
 
 Börja med "Psst..." eller liknande. Var vag nog att det skapar paranoia men specifik nog att spelaren reagerar.
 
-KRITISKT: Inkludera ALDRIG information om spelares roller. Basera allt på OBSERVERBART beteende (röster, teamval, vad folk sa).
+KRITISKT:
+- Inkludera ALDRIG information om spelares roller. Basera allt på OBSERVERBART beteende (röster, teamval, vad folk sa).
+- Använd BARA namnen som listas ovan. Hitta ALDRIG PÅ namn som inte finns i spelet.
 
 Ange vilken strategi du valde som FÖRSTA raden: [SANNING], [HALV_SANNING] eller [LÖGN]
 
@@ -195,6 +197,8 @@ Skriv en kort (1-3 meningar) kommentar. Det kan vara:
 - Ett subtilt sticka mot en spelare
 - Meta-humor om spelet
 - En dramatisk one-liner
+
+Använd BARA namnen som listas ovan. Hitta ALDRIG PÅ namn som inte finns i spelet.
 
 Håll det under 300 tecken. Använd <b> och <i> sparsamt.`;
 }
