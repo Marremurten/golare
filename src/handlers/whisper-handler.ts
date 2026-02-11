@@ -17,7 +17,9 @@ import {
   getGamePlayersOrderedWithInfo,
   getWhispersForPlayerInRound,
   createWhisper,
+  getRecentPlayerMessages,
 } from "../db/client.js";
+import { selectQuotesForWhisper, buildAllPlayerOverview } from "../lib/behavioral-analysis.js";
 import {
   generateWhisperMessage,
   generateGapFillComment,
@@ -214,11 +216,33 @@ async function sendWhisper(
       .map((p) => displayName(p.players));
     const roundEvents = gatherRoundEvents(game, round, players);
 
+    // Gather behavioral data for whisper context
+    let targetQuotes: string[] = [];
+    try {
+      const recentMessages = await getRecentPlayerMessages(game.id, target.id, 10);
+      targetQuotes = selectQuotesForWhisper(recentMessages, 2);
+    } catch (err) {
+      console.warn("[whisper] Failed to fetch player messages for whisper context:", err instanceof Error ? err.message : err);
+      // Continue with empty quotes -- graceful degradation (CONST-04)
+    }
+
+    const allPlayerOverview = buildAllPlayerOverview(
+      guzmanCtx.playerNotes,
+      displayName(target.players),
+    );
+
+    const targetRole = target.role ?? "akta"; // Fallback to akta if null (shouldn't happen in active game)
+    const roundNumber = round.round_number;
+
     const whisperResult = await generateWhisperMessage(
       guzmanCtx,
       displayName(target.players),
+      targetRole,
       otherNames,
       roundEvents,
+      targetQuotes,
+      allPlayerOverview,
+      roundNumber,
     );
 
     // AI unavailable or returned null -- skip silently
