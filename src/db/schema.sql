@@ -176,3 +176,37 @@ CREATE TABLE IF NOT EXISTS whispers (
 
 CREATE INDEX IF NOT EXISTS idx_whispers_game_id ON whispers (game_id);
 CREATE INDEX IF NOT EXISTS idx_whispers_target_player ON whispers (target_player_id);
+
+-- ---------------------------------------------------------------------------
+-- Anonymous whispers from players relayed through Guzman (Phase 5)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS anonymous_whispers (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  game_id           UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+  round_number      INT NOT NULL,
+  sender_player_id  UUID NOT NULL REFERENCES game_players(id),
+  target_type       TEXT NOT NULL CHECK (target_type IN ('group', 'player')),
+  target_player_id  UUID REFERENCES game_players(id),
+  original_message  TEXT NOT NULL,
+  relayed_message   TEXT NOT NULL,
+  sent_at           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_anon_whispers_game_id ON anonymous_whispers (game_id);
+
+-- ---------------------------------------------------------------------------
+-- Surveillance actions by non-team players (Phase 5)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS surveillance (
+  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  game_id              UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+  round_number         INT NOT NULL,
+  surveiller_player_id UUID NOT NULL REFERENCES game_players(id),
+  target_player_id     UUID NOT NULL REFERENCES game_players(id),
+  clue_message         TEXT NOT NULL,
+  target_notified      BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT unique_surveillance_per_round UNIQUE (game_id, surveiller_player_id, round_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_surveillance_game_id ON surveillance (game_id);

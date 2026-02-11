@@ -585,6 +585,60 @@ export const MESSAGES = {
       `<b>Vi åkte dit!</b> ❌\n\n` +
       `${golaCount} stycken golade. Familjen blöder, bre. 💀`,
   ] as const,
+  // -------------------------------------------------------------------------
+  // Engagement messages (Phase 5)
+  // -------------------------------------------------------------------------
+
+  /** Prompt user to choose whisper target */
+  WHISPER_TARGET_PROMPT: "Vem vill du viska till, bre? Välj nedan. 👇",
+
+  /** Prompt user to type their whisper message */
+  WHISPER_MESSAGE_PROMPT: "Skriv ditt meddelande. Guzman fixar resten. 🤫",
+
+  /** Confirmation after whisper is sent */
+  WHISPER_SENT_CONFIRM: "Meddelandet har levererats. Ingen vet att det var du, bre. 🤫",
+
+  /** Whisper expired (TTL) */
+  WHISPER_EXPIRED: "Tiden gick ut, bre. Kör /viska igen om du vill. ⏰",
+
+  /** Template fallback for whisper relay when AI is unavailable */
+  WHISPER_RELAY_TEMPLATE: (whisperText: string) =>
+    "<b>Guzman har fått ett anonymt meddelande...</b> 📩\n\n" +
+    `<i>"${whisperText}"</i>\n\n` +
+    "Nån i familjen har nåt att säga. Frågan är -- vem? 🤔",
+
+  /** Template fallback for targeted whisper relay */
+  WHISPER_RELAY_TARGETED_TEMPLATE: (targetName: string, whisperText: string) =>
+    `<b>Guzman till ${targetName}:</b> 📩\n\n` +
+    `Nån bad mig skicka det här till dig:\n<i>"${whisperText}"</i>\n\n` +
+    "Vem det var? Det stannar hos mig, bre. 🤫",
+
+  /** Player is on the team -- can't use engagement actions */
+  ENGAGEMENT_ON_TEAM: "Du är med i teamet den här rundan, bre. Fokusera på stöten istället. 🎯",
+
+  /** No active game for engagement actions */
+  ENGAGEMENT_NO_GAME: "Du är inte med i något aktivt spel just nu, bre. 🤷",
+
+  /** Game not in a valid phase for engagement actions */
+  ENGAGEMENT_WRONG_PHASE: "Det finns inget aktivt uppdrag just nu, bre. Vänta tills nästa runda. ⏳",
+
+  /** Surveillance: prompt to choose target */
+  SURVEILLANCE_TARGET_PROMPT: "Vem vill du spana på, bre? Välj en teammedlem. 👇",
+
+  /** Surveillance: already used this round */
+  SURVEILLANCE_ALREADY_USED: "Du har redan spanat den här rundan, bre. Vänta till nästa. 🔒",
+
+  /** Surveillance: target was notified */
+  SURVEILLANCE_TARGET_NOTIFIED: "Någon har riktat blicken mot dig... 👀",
+
+  /** Surveillance: confirmation sent to surveiller */
+  SURVEILLANCE_SENT_CONFIRM: "Guzman har kollat runt åt dig. Kolla nedan. 🔍",
+
+  /** Template fallback for surveillance clue when AI is unavailable */
+  SURVEILLANCE_CLUE_TEMPLATE: (targetName: string) =>
+    `Jag kollade på <b>${targetName}</b> åt dig, bre...\n\n` +
+    "Svårt att säga. Antingen spelar den personen sitt spel bra, " +
+    "eller så har den inget att dölja. 🤔",
 } as const;
 
 /**

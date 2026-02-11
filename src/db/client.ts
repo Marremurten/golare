@@ -17,6 +17,10 @@ import type {
   GuzmanContext,
   Whisper,
   WhisperInsert,
+  AnonymousWhisper,
+  AnonymousWhisperInsert,
+  Surveillance,
+  SurveillanceInsert,
 } from "./types.js";
 import { config } from "../config.js";
 
@@ -784,4 +788,71 @@ export async function getWhispersForPlayerInRound(
   }
 
   return (data ?? []) as Whisper[];
+}
+
+// ---------------------------------------------------------------------------
+// Engagement CRUD (Phase 5)
+// ---------------------------------------------------------------------------
+
+/**
+ * Create an anonymous whisper (player -> Guzman relay -> group/player).
+ */
+export async function createAnonymousWhisper(
+  whisper: AnonymousWhisperInsert,
+): Promise<AnonymousWhisper> {
+  const { data, error } = await supabase
+    .from("anonymous_whispers")
+    .insert(whisper)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(`createAnonymousWhisper failed: ${error.message}`);
+  }
+
+  return data as AnonymousWhisper;
+}
+
+/**
+ * Create a surveillance record. Callers should catch unique constraint
+ * violations for "already used this round" feedback.
+ */
+export async function createSurveillance(
+  surveillance: SurveillanceInsert,
+): Promise<Surveillance> {
+  const { data, error } = await supabase
+    .from("surveillance")
+    .insert(surveillance)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new Error(`createSurveillance failed: ${error.message}`);
+  }
+
+  return data as Surveillance;
+}
+
+/**
+ * Check if a player has already used surveillance this round.
+ * Returns the existing record or null.
+ */
+export async function getSurveillanceForPlayerInRound(
+  gameId: string,
+  surveillerPlayerId: string,
+  roundNumber: number,
+): Promise<Surveillance | null> {
+  const { data, error } = await supabase
+    .from("surveillance")
+    .select("*")
+    .eq("game_id", gameId)
+    .eq("surveiller_player_id", surveillerPlayerId)
+    .eq("round_number", roundNumber)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`getSurveillanceForPlayerInRound failed: ${error.message}`);
+  }
+
+  return data as Surveillance | null;
 }

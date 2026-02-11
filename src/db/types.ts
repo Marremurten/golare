@@ -173,6 +173,44 @@ export type Whisper = {
 export type WhisperInsert = Omit<Whisper, "id" | "sent_at">;
 
 // ---------------------------------------------------------------------------
+// Engagement types (Phase 5)
+// ---------------------------------------------------------------------------
+
+/** Target type for anonymous whispers */
+export type WhisperTargetType = "group" | "player";
+
+/** Full anonymous_whisper row as returned from the database */
+export type AnonymousWhisper = {
+  id: string;
+  game_id: string;
+  round_number: number;
+  sender_player_id: string;
+  target_type: WhisperTargetType;
+  target_player_id: string | null;
+  original_message: string;
+  relayed_message: string;
+  sent_at: string;
+};
+
+/** Fields for inserting a new anonymous whisper (id and sent_at are auto-generated) */
+export type AnonymousWhisperInsert = Omit<AnonymousWhisper, "id" | "sent_at">;
+
+/** Full surveillance row as returned from the database */
+export type Surveillance = {
+  id: string;
+  game_id: string;
+  round_number: number;
+  surveiller_player_id: string;
+  target_player_id: string;
+  clue_message: string;
+  target_notified: boolean;
+  created_at: string;
+};
+
+/** Fields for inserting a new surveillance record (id and created_at are auto-generated) */
+export type SurveillanceInsert = Omit<Surveillance, "id" | "created_at">;
+
+// ---------------------------------------------------------------------------
 // Supabase Database type definition
 // ---------------------------------------------------------------------------
 
@@ -276,6 +314,56 @@ export type Database = {
           },
           {
             foreignKeyName: "whispers_target_player_id_fkey";
+            columns: ["target_player_id"];
+            referencedRelation: "game_players";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      anonymous_whispers: {
+        Row: AnonymousWhisper;
+        Insert: AnonymousWhisperInsert;
+        Update: Partial<AnonymousWhisper>;
+        Relationships: [
+          {
+            foreignKeyName: "anonymous_whispers_game_id_fkey";
+            columns: ["game_id"];
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "anonymous_whispers_sender_player_id_fkey";
+            columns: ["sender_player_id"];
+            referencedRelation: "game_players";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "anonymous_whispers_target_player_id_fkey";
+            columns: ["target_player_id"];
+            referencedRelation: "game_players";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      surveillance: {
+        Row: Surveillance;
+        Insert: SurveillanceInsert;
+        Update: Partial<Surveillance>;
+        Relationships: [
+          {
+            foreignKeyName: "surveillance_game_id_fkey";
+            columns: ["game_id"];
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "surveillance_surveiller_player_id_fkey";
+            columns: ["surveiller_player_id"];
+            referencedRelation: "game_players";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "surveillance_target_player_id_fkey";
             columns: ["target_player_id"];
             referencedRelation: "game_players";
             referencedColumns: ["id"];
