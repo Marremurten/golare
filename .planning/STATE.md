@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 ## Current Position
 
 Phase: 04-gap-fill-accusations
-Plan: 01 of 02 complete.
-Status: Plan 01 complete -- mood computation, accusation target selection, prompt builders, and AI generation functions ready. Plan 02 next: wire into gap-fill schedule.
-Last activity: 2026-02-11 — 04-01 complete, verified
+Plan: 02 of 02 complete.
+Status: Phase 04 complete -- accusation delivery and mood-adaptive gap-fill wired into cron schedule.
+Last activity: 2026-02-11 — 04-02 complete, verified
 
-Progress: [######....] 60% (v1.1 -- 3/5 phases + 04-01, 6 plans complete)
+Progress: [#######...] 70% (v1.1 -- 4/5 phases complete, 7 plans complete)
 
 ## Performance Metrics
 
@@ -36,7 +36,7 @@ Progress: [######....] 60% (v1.1 -- 3/5 phases + 04-01, 6 plans complete)
 | 01-data-pipeline | 2/2 | 5min | 2.5min |
 | 02-behavioral-analysis | 1/1 | 2min | 2min |
 | 03-whisper-integration | 2/2 | 4min | 2min |
-| 04-gap-fill-accusations | 1/2 | 5min | 5min |
+| 04-gap-fill-accusations | 2/2 | 7min | 3.5min |
 
 ## Accumulated Context
 
@@ -66,6 +66,10 @@ v1.1 decisions:
 - Accusation generation returns null on AI failure (no template -- never fabricates constraint)
 - GroupMood computed at call time from playerNotes, never stored
 - Gap-fill always provocative regardless of mood; mood only adapts angle
+- Flat max 2 accusations per round across ALL rounds (no escalation)
+- Accusation fires skip gap-fill for that cron slot (no double messages)
+- Fresh analyzeBehavior at cron time, not stale GuzmanContext.playerNotes
+- Mood-adaptive gating: tense=always, calm=never, active=when quiet
 
 ### Pending Todos
 
@@ -79,5 +83,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 04-01-PLAN.md. Mood computation, accusation building blocks ready. Plan 02 next: wire into gap-fill schedule.
+Stopped at: Completed 04-02-PLAN.md. Phase 04 complete -- accusation delivery and mood-adaptive gap-fill fully wired. Phase 05 next if applicable.
 Resume file: None
