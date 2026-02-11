@@ -136,43 +136,119 @@ Håll det under 1500 tecken. Använd <b> och <i>.`;
 }
 
 /**
- * Build the user message for whisper generation.
+ * Build the user message for behavior-aware whisper generation.
  *
- * CRITICAL: Never include actual role assignments. Only include
- * observable information (votes, behavior, team choices).
+ * Guzman is a skvallerkung (gossip king) who references actual player
+ * behavior via oblique paraphrasing. He never quotes directly, never
+ * references timestamps, and frames everything as rumors and gut feeling.
+ *
+ * Prompt includes:
+ * - Target player's recent messages for paraphrasing (WHISP-01)
+ * - All-player behavioral overview for context (WHISP-02)
+ * - Strict oblique-reference rules (WHISP-03)
+ * - Role-aware paranoia calibration (aggressive/seductive/respectful)
+ * - Round-based intensity escalation (vague early, pointed late)
+ *
+ * CRITICAL: Role information calibrates TONE only. The generated whisper
+ * text must NEVER reference or hint at the target player's actual role.
  */
 export function buildWhisperPrompt(
   gameContext: GuzmanContext,
   targetPlayerName: string,
+  targetRole: PlayerRole,
   otherPlayerNames: string[],
   roundEvents: string,
+  targetQuotes: string[],
+  allPlayerOverview: string,
+  roundNumber: number,
 ): string {
   const playerNote = gameContext.playerNotes[targetPlayerName] || "Ingen historik";
 
+  // --- Role-aware approach ---
+  let roleApproach: string;
+  switch (targetRole) {
+    case "golare":
+      roleApproach = "Guzman pressar hårt. Hota, ifrågasätt, skapa stress. Var konfrontativ och misstänksam -- den här personen känns inte pålitlig.";
+      break;
+    case "akta":
+      roleApproach = "Guzman är förförisk. Drag in spelaren i hemligheter, skapa exklusivitet. Var konspirerande -- rekrytera den här personen till din sida.";
+      break;
+    case "hogra_hand":
+      roleApproach = "Guzman är respektfull men testar lojalitet. Droppa exklusiv info, behandla spelaren som en i din inre cirkel -- men testa att förtroendet håller.";
+      break;
+  }
+
+  // --- Round-based escalation ---
+  let intensityInstruction: string;
+  if (roundNumber <= 2) {
+    intensityInstruction = "Vag, atmosfärisk. Bygg stämning, droppa vaga antydningar. \"Jag har hört saker, bre...\" Använd magkänsla och mystik. Om det inte finns mycket beteendedata, spekulera och skapa atmosfär -- skvaller behöver inga bevis.";
+  } else if (roundNumber === 3) {
+    intensityInstruction = "Mer specifik. Nämna beteenden, var mer direkt med parafraseringar. \"Nån sa nåt intressant om dig...\" Peka ut saker folk gjort utan att vara för exakt.";
+  } else {
+    intensityInstruction = "Maximal intensitet. Pekat, dramatiskt, hög press. Guzman vet allt. Konfrontera med tydliga (men förvridna) detaljer. Dramatisera varje observation till max.";
+  }
+
+  // --- Target quotes section ---
+  let quotesSection: string;
+  if (targetQuotes.length > 0) {
+    const formattedQuotes = targetQuotes
+      .map((q, i) => `  ${i + 1}. "${q}"`)
+      .join("\n");
+    quotesSection = `SPELARENS SENASTE AKTIVITET (INTERN -- aldrig citera rakt av):
+${formattedQuotes}
+Parafrasera och vrid -- aldrig citera rakt av. Guzman har "hört" saker, inte "läst" dem.
+Vrida oskyldig text hårdare. Redan misstänkt text kan vara närmare verkligheten.`;
+  } else {
+    quotesSection = `SPELARENS SENASTE AKTIVITET:
+Ingen aktivitet registrerad. Använd detta: "Du har varit för tyst, mannen..." Tystnad är misstänkt i sig. Spekulera och skapa atmosfär baserat på magkänsla.`;
+  }
+
   return `Skriv ett hemligt DM-meddelande (viskning) från Guzman till <b>${targetPlayerName}</b>.
+
+INTERN BETEENDEANALYS (använd ALDRIG dessa etiketter i meddelandet -- översätt allt till naturligt skvaller):
+- Om ${targetPlayerName}: ${playerNote}
+
+ÖVRIGA SPELARE (använd detta för att skapa paranoia -- jämför spelaren med andra, droppa antydningar):
+${allPlayerOverview}
+
+${quotesSection}
 
 KONTEXT:
 - Mottagare: ${targetPlayerName}
 - Övriga spelare: ${otherPlayerNames.join(", ")}
 - Stämning: ${gameContext.mood}
 - Händelser denna runda: ${roundEvents}
-- Notering om spelaren: ${playerNote}
+- Runda: ${roundNumber} av 5
 
-UPPGIFT:
-Skriv en kort, manipulativ viskning. Välj EN av dessa strategier:
-1. SANNING: Ge en verklig observation baserad på rundans händelser
-2. HALV SANNING: Blanda en riktig observation med en vilseledande tolkning
-3. LÖGN: Hitta på ett falskt rykte om en annan spelare
+GUZMAN APPROACH:
+${roleApproach}
 
-Börja med "Psst..." eller liknande. Var vag nog att det skapar paranoia men specifik nog att spelaren reagerar.
+INTENSITET (runda ${roundNumber}):
+${intensityInstruction}
 
-KRITISKT:
-- Inkludera ALDRIG information om spelares roller. Basera allt på OBSERVERBART beteende (röster, teamval, vad folk sa).
+GUZMANS RÖST -- SKVALLERKUNGEN:
+Du är skvallerkungen. Du sprider rykten, skapar paranoia, och får alla att misstänka varandra.
+Du pratar som att du "hört saker" och har "känsla för folk" -- aldrig som att du läst data eller sett statistik.
+Använd magkänsla-framing: "Mannen, du vet inte vad folk säger om dig...", "Jag har hört grejer...", "Min magkänsla säger mig..."
+Du ger ibland olika versioner av samma historia till olika spelare. Det är meningen.
+
+STRATEGI -- Välj EN:
+1. SANNING: Ge en verklig observation baserad på beteendedata och rundans händelser (parafraserad som skvaller)
+2. HALV_SANNING: Blanda en riktig observation med en vilseledande tolkning
+3. LÖGN: Hitta på ett falskt rykte om en annan spelare (SÄLLSYNT -- högst 1 av 5 viskningar bör vara ren lögn)
+4. FÖRSÄKRAN: Manipulativ trygghet -- "du är den enda jag litar på" -- skapa falsk exklusivitet som vapen
+
+KRITISKA REGLER:
+- ALDRIG citera ordagrant från spelarmeddelanden
+- ALDRIG referera till tidpunkter ("kl 14:32 sa du...", "för 2 timmar sedan...")
+- ALDRIG avslöja spelares roller
+- ALDRIG visa beteendedata som statistik (inga procent, siffror, etiketter som "Ton:" eller "Aktivitet:")
+- Allt beteendedata är internt -- framställ det som Guzmans "magkänsla" och rykten
 - Använd BARA namnen som listas ovan. Hitta ALDRIG PÅ namn som inte finns i spelet.
 
-Ange vilken strategi du valde som FÖRSTA raden: [SANNING], [HALV_SANNING] eller [LÖGN]
+Ange vilken strategi du valde som FÖRSTA raden: [SANNING], [HALV_SANNING], [LÖGN] eller [FÖRSÄKRAN]
 
-Håll meddelandet under 500 tecken. Använd <b> och <i>.`;
+Håll meddelandet under 500 tecken. Använd <b> och <i> för formatering.`;
 }
 
 /**
