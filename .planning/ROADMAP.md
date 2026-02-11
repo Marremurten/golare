@@ -21,9 +21,10 @@ Plans:
 **Goal**: A behavioral analysis module computes per-player activity stats and tone classifications, builds compressed summaries that populate `GuzmanContext.playerNotes`, and detects behavioral anomalies — still no user-facing changes.
 **Depends on**: Phase 1
 **Requirements**: BEHAV-01, BEHAV-02, BEHAV-03, BEHAV-04, CONST-02
+**Plans:** 1 plan
 
 Plans:
-- (not yet planned)
+- [ ] 02-01-PLAN.md — Behavioral analysis module (stats, tone, anomalies, summaries) and integration into updateNarrativeContext
 
 ### Phase 3: Whisper Integration
 
