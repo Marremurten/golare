@@ -7,13 +7,15 @@ import {
   buildResultPrompt,
   buildWhisperPrompt,
   buildGapFillPrompt,
+  buildWhisperRelayPrompt,
+  buildSurveillanceCluePrompt,
 } from "./ai-prompts.js";
 import { MESSAGES } from "./messages.js";
 import {
   getGuzmanContext as dbGetGuzmanContext,
   updateGuzmanContext as dbUpdateGuzmanContext,
 } from "../db/client.js";
-import type { GuzmanContext, TruthLevel } from "../db/types.js";
+import type { GuzmanContext, TruthLevel, PlayerRole } from "../db/types.js";
 
 // ---------------------------------------------------------------------------
 // HTML sanitization for Telegram
@@ -265,6 +267,109 @@ export async function generateGapFillComment(
       error instanceof Error ? error.message : error,
     );
     return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Engagement AI Generation (Phase 5)
+// ---------------------------------------------------------------------------
+
+/**
+ * Generate a whisper relay message -- Guzman presents an anonymous player
+ * message to the group with a cryptic hint about the sender's role.
+ * Falls back to MESSAGES.WHISPER_RELAY_TEMPLATE on any failure.
+ */
+export async function generateWhisperRelay(
+  senderRole: PlayerRole,
+  whisperText: string,
+  gameContext: GuzmanContext,
+): Promise<string> {
+  try {
+    const client = getAIClient();
+    if (!client) {
+      return MESSAGES.WHISPER_RELAY_TEMPLATE(whisperText);
+    }
+
+    const response = await client.chat.completions.create({
+      model: MODEL_MAP.narrative,
+      messages: [
+        { role: "system", content: buildGuzmanSystemPrompt() },
+        {
+          role: "user",
+          content: buildWhisperRelayPrompt(senderRole, whisperText, gameContext),
+        },
+      ],
+      max_tokens: 600,
+      temperature: 0.9,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      console.warn(
+        "[ai-guzman] Empty response for whisper relay, using template",
+      );
+      return MESSAGES.WHISPER_RELAY_TEMPLATE(whisperText);
+    }
+
+    return sanitizeForTelegram(content);
+  } catch (error) {
+    console.warn(
+      "[ai-guzman] Whisper relay generation failed, using template:",
+      error instanceof Error ? error.message : error,
+    );
+    return MESSAGES.WHISPER_RELAY_TEMPLATE(whisperText);
+  }
+}
+
+/**
+ * Generate a surveillance clue about a target player.
+ * Falls back to MESSAGES.SURVEILLANCE_CLUE_TEMPLATE on any failure.
+ */
+export async function generateSurveillanceClue(
+  targetName: string,
+  targetRole: PlayerRole,
+  roundEvents: string,
+  gameContext: GuzmanContext,
+): Promise<string> {
+  try {
+    const client = getAIClient();
+    if (!client) {
+      return MESSAGES.SURVEILLANCE_CLUE_TEMPLATE(targetName);
+    }
+
+    const response = await client.chat.completions.create({
+      model: MODEL_MAP.commentary,
+      messages: [
+        { role: "system", content: buildGuzmanSystemPrompt() },
+        {
+          role: "user",
+          content: buildSurveillanceCluePrompt(
+            targetName,
+            targetRole,
+            roundEvents,
+            gameContext,
+          ),
+        },
+      ],
+      max_tokens: 300,
+      temperature: 0.9,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      console.warn(
+        "[ai-guzman] Empty response for surveillance clue, using template",
+      );
+      return MESSAGES.SURVEILLANCE_CLUE_TEMPLATE(targetName);
+    }
+
+    return sanitizeForTelegram(content);
+  } catch (error) {
+    console.warn(
+      "[ai-guzman] Surveillance clue generation failed, using template:",
+      error instanceof Error ? error.message : error,
+    );
+    return MESSAGES.SURVEILLANCE_CLUE_TEMPLATE(targetName);
   }
 }
 

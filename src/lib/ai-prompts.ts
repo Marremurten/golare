@@ -1,4 +1,4 @@
-import type { GuzmanContext } from "../db/types.js";
+import type { GuzmanContext, PlayerRole } from "../db/types.js";
 
 /**
  * Build the Guzman system prompt -- the core persona definition.
@@ -197,4 +197,81 @@ Skriv en kort (1-3 meningar) kommentar. Det kan vara:
 - En dramatisk one-liner
 
 Håll det under 300 tecken. Använd <b> och <i> sparsamt.`;
+}
+
+// ---------------------------------------------------------------------------
+// Engagement prompt builders (Phase 5)
+// ---------------------------------------------------------------------------
+
+/** Map roles to Guzman-flavored cryptic hints for anonymous whisper relay */
+const ROLE_HINTS: Record<PlayerRole, string> = {
+  golare: "någon som känner lukten av para",
+  hogra_hand: "någon med skarpa ögon",
+  akta: "någon från familjen",
+};
+
+/**
+ * Build the prompt for relaying an anonymous whisper through Guzman.
+ *
+ * The sender's role is included as SECRET context -- Guzman must give
+ * only a cryptic hint, never reveal the actual role.
+ */
+export function buildWhisperRelayPrompt(
+  senderRole: PlayerRole,
+  whisperText: string,
+  gameContext: GuzmanContext,
+): string {
+  const roleHint = ROLE_HINTS[senderRole];
+
+  return `Nån i familjen skickade ett anonymt meddelande till Guzman. Din uppgift är att presentera det för gruppen.
+
+HEMLIGT (AVSLÖJA ALDRIG): Avsändaren är ${senderRole}. Du får BARA ge en KRYPTISK LEDTRÅD som "${roleHint}" -- anpassa fritt men avslöja ALDRIG rollen direkt.
+
+MEDDELANDET SOM SKICKADES:
+"${whisperText}"
+
+SPELKONTEXT:
+- Stämning: ${gameContext.mood}
+- Story-arc: ${gameContext.storyArc || "Inget ännu"}
+
+UPPGIFT:
+Presentera meddelandet som nåt som viskades till Guzman. Lägg till en subtil, kryptisk ledtråd om avsändarens roll (baserat på HEMLIGT ovan). Ledtråden ska kännas som Guzmans paranoia, inte som en objektiv fakta.
+
+Format: Börja med nåt i stil med "Guzman har fått ett anonymt meddelande..." och presentera sedan meddelandet i <i>kursiv</i>. Avsluta med den kryptiska ledtråden.
+
+Håll det under 600 tecken. Använd <b> och <i>.`;
+}
+
+/**
+ * Build the prompt for generating a surveillance clue about a target player.
+ *
+ * The clue should be action-based/behavior-based, not a direct role reveal.
+ */
+export function buildSurveillanceCluePrompt(
+  targetName: string,
+  targetRole: PlayerRole,
+  roundEvents: string,
+  gameContext: GuzmanContext,
+): string {
+  return `En spelare bad Guzman att kolla upp <b>${targetName}</b>. Skriv en kryptisk ledtråd baserat på deras BETEENDE denna runda.
+
+HEMLIGT (AVSLÖJA ALDRIG DIREKT): ${targetName} har rollen ${targetRole}.
+
+RUNDANS HÄNDELSER:
+${roundEvents}
+
+SPELKONTEXT:
+- Stämning: ${gameContext.mood}
+- Story-arc: ${gameContext.storyArc || "Inget ännu"}
+
+UPPGIFT:
+Ge en vag, kryptisk ledtråd om ${targetName} baserat på deras HANDLINGAR denna runda (röster, teambeteende, etc), INTE deras roll direkt. Ledtråden ska:
+- Antyda utan att avslöja
+- Kännas som Guzmans paranoia
+- Baseras på observerbart beteende
+- Vara tillräckligt vag att den kan tolkas på flera sätt
+
+Börja med "Jag kollade på <b>${targetName}</b> åt dig, bre..." och ge sedan ledtråden.
+
+Håll det under 400 tecken. Använd <b> och <i>.`;
 }
