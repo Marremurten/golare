@@ -12,6 +12,7 @@ import {
   buildSpaningPrompt,
   buildIndividualRevealPrompt,
 } from "./ai-prompts.js";
+import { analyzeBehavior } from "./behavioral-analysis.js";
 import { MESSAGES } from "./messages.js";
 import {
   getGuzmanContext as dbGetGuzmanContext,
@@ -561,6 +562,20 @@ export async function updateNarrativeContext(
     }));
 
     context.roundSummaries = [...compressed, ...recent];
+  }
+
+  // Populate playerNotes with behavioral analysis (non-critical)
+  try {
+    const { playerNotes, historyUpdate } = await analyzeBehavior(gameId);
+    context.playerNotes = playerNotes;
+    context.behavioralHistory = historyUpdate;
+  } catch (err) {
+    console.warn(
+      "[ai-guzman] Behavioral analysis failed, playerNotes unchanged:",
+      err instanceof Error ? err.message : err,
+    );
+    // Non-critical: if analysis fails, playerNotes stays as-is (empty or stale)
+    // Game continues normally -- CONST-04 pattern
   }
 
   await dbUpdateGuzmanContext(gameId, context);
