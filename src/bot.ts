@@ -16,6 +16,7 @@ import {
   trackGroupMessage,
 } from "./handlers/whisper-handler.js";
 import { engagementHandler } from "./handlers/engagement.js";
+import { capturePlayerMessage } from "./lib/message-capture.js";
 import {
   startScheduler,
   stopScheduler,
@@ -37,6 +38,10 @@ createMessageQueue(bot);
 bot.on("message:text", async (ctx, next) => {
   if (ctx.chat?.type === "group" || ctx.chat?.type === "supergroup") {
     trackGroupMessage(ctx.chat.id);
+    // Fire-and-forget: capture message for behavioral tracking (v1.1)
+    capturePlayerMessage(ctx).catch((err) =>
+      console.warn("[capture] Message capture failed:", err)
+    );
   }
   await next();
 });

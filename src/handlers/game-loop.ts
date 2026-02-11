@@ -66,6 +66,7 @@ import {
 import { getMessageQueue } from "../queue/message-queue.js";
 import { triggerEventWhisper } from "./whisper-handler.js";
 import { config } from "../config.js";
+import { invalidateGameCache } from "../lib/message-capture.js";
 import type { ScheduleHandlers } from "../lib/scheduler.js";
 
 // ---------------------------------------------------------------------------
@@ -511,6 +512,7 @@ async function performFinalReveal(
 
   // 5. Set game state to finished
   await updateGame(game.id, { state: "finished" });
+  invalidateGameCache(game.group_chat_id);
 
   // 6. Clean up in-memory state
   cleanupSistaChansen(game.id);
@@ -657,6 +659,7 @@ async function resolveExecution(
       // Fallback: no bot ref available (should not happen in production)
       console.error("[game-loop] No bot reference for Sista Chansen -- finishing game directly");
       await updateGame(game.id, { state: "finished" });
+      invalidateGameCache(game.group_chat_id);
     }
 
     console.log(

@@ -17,6 +17,7 @@ import { MESSAGES } from "../lib/messages.js";
 import { getRandomError } from "../lib/errors.js";
 import { getMessageQueue } from "../queue/message-queue.js";
 import { assignRoles, ROLE_BALANCING } from "../lib/roles.js";
+import { invalidateGameCache } from "../lib/message-capture.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -40,6 +41,19 @@ async function isGroupAdmin(
   try {
     const member = await ctx.api.getChatMember(chatId, userId);
     return member.status === "creator" || member.status === "administrator";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if the bot itself is an admin or creator in the chat.
+ * Required for message visibility (DATA-04).
+ */
+async function isBotAdmin(ctx: Context, chatId: number): Promise<boolean> {
+  try {
+    const botMember = await ctx.api.getChatMember(chatId, ctx.me.id);
+    return botMember.status === "administrator" || botMember.status === "creator";
   } catch {
     return false;
   }
@@ -114,6 +128,16 @@ lobbyHandler
       const admin = await isGroupAdmin(ctx, ctx.chat.id, ctx.from.id);
       if (!admin) {
         await ctx.reply(MESSAGES.LOBBY_NOT_ADMIN);
+        return;
+      }
+
+      // 1b. Check bot is admin (required for message visibility -- DATA-04)
+      const botAdmin = await isBotAdmin(ctx, ctx.chat.id);
+      if (!botAdmin) {
+        await ctx.reply(
+          "Yo, jag behöver vara admin i gruppen för att kunna " +
+          "se alla meddelanden. Gör mig till admin först, sen kör vi. 🔧"
+        );
         return;
       }
 
@@ -327,6 +351,9 @@ lobbyHandler.callbackQuery(/^start:(.+)$/, async (ctx) => {
 
     // 5. Transition to active state with team_size
     await updateGame(gameId, { state: "active", team_size: balancing.teamSize });
+
+    // Invalidate message capture cache (new game started)
+    invalidateGameCache(game.group_chat_id);
 
     // 6. Save roles to database
     await Promise.all(

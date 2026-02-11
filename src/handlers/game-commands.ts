@@ -9,6 +9,7 @@ import {
 } from "../db/client.js";
 import { MESSAGES } from "../lib/messages.js";
 import { getMessageQueue } from "../queue/message-queue.js";
+import { invalidateGameCache } from "../lib/message-capture.js";
 import type { PlayerRole, RoundPhase } from "../db/types.js";
 
 // ---------------------------------------------------------------------------
@@ -42,6 +43,7 @@ gameCommandsHandler
 
       // 3. Update game state to cancelled
       await updateGame(game.id, { state: "cancelled" });
+      invalidateGameCache(game.group_chat_id);
 
       // 4. If game was in lobby state with a lobby message, edit to remove buttons
       if (game.state === "lobby" && game.lobby_message_id) {
