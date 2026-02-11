@@ -44,9 +44,11 @@ Plans:
 **Goal**: Gap-fill commentary adapts to group mood, and Guzman publicly calls out suspicious behavior (silence, aggression spikes) with controlled frequency — making the group chat feel like Guzman is always watching.
 **Depends on**: Phase 3
 **Requirements**: GROUP-01, GROUP-02, GROUP-03, CONST-04
+**Plans:** 2 plans
 
 Plans:
-- (not yet planned)
+- [ ] 04-01-PLAN.md — Group mood computation, accusation target selection, prompt builders, and generateAccusation
+- [ ] 04-02-PLAN.md — Accusation delivery, frequency tracking, and mood-adaptive gap-fill wiring in whisper-handler
 
 ### Phase 5: Mission Adaptation
 
