@@ -226,3 +226,38 @@ CREATE TABLE IF NOT EXISTS player_spanings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_player_spanings_game_id ON player_spanings (game_id);
+
+-- ---------------------------------------------------------------------------
+-- Player messages: ring buffer for behavioral tracking (v1.1)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS player_messages (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  game_id          UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+  game_player_id   UUID NOT NULL REFERENCES game_players(id) ON DELETE CASCADE,
+  message_text     TEXT NOT NULL,
+  sent_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_player_messages_player_game
+  ON player_messages (game_id, game_player_id, sent_at DESC);
+
+-- Prune to keep only the last 10 messages per player per game (ring buffer)
+CREATE OR REPLACE FUNCTION prune_player_messages()
+RETURNS TRIGGER AS $$
+BEGIN
+  DELETE FROM player_messages
+  WHERE id IN (
+    SELECT id FROM player_messages
+    WHERE game_id = NEW.game_id
+      AND game_player_id = NEW.game_player_id
+    ORDER BY sent_at DESC
+    OFFSET 10
+  );
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_prune_player_messages
+  AFTER INSERT ON player_messages
+  FOR EACH ROW
+  EXECUTE FUNCTION prune_player_messages();
