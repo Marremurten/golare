@@ -15,6 +15,7 @@ import {
   createWhisperHandler,
   trackGroupMessage,
 } from "./handlers/whisper-handler.js";
+import { engagementHandler } from "./handlers/engagement.js";
 import {
   startScheduler,
   stopScheduler,
@@ -45,6 +46,7 @@ bot.use(startHandler);
 bot.use(lobbyHandler);
 bot.use(gameCommandsHandler);
 bot.use(gameLoopHandler);
+bot.use(engagementHandler);
 
 // 6. Scheduler -- combine game-loop + whisper handlers
 const gameLoopScheduleHandlers = createScheduleHandlers(bot);
