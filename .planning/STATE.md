@@ -2,19 +2,19 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-10)
+See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** The social deduction experience -- paranoia, accusations, and bluffing between friends -- driven by an AI game master that actively stirs conflict and keeps every player engaged.
-**Current focus:** Phase 5: Engagement (COMPLETE)
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 5 of 5 (Engagement)
-Plan: 2 of 2 in current phase (2 done)
-Status: Complete
-Last activity: 2026-02-11 -- Phase 5 Plan 02 (Spaning, Double Scoring, Role Reveal) complete.
+Phase: Not started (v1 complete, defining next milestone)
+Plan: —
+Status: Milestone v1 shipped. Ready for next milestone.
+Last activity: 2026-02-11 — v1 milestone complete
 
-Progress: [==========] 100%
+Progress: [==========] 100% (v1)
 
 ## Performance Metrics
 
@@ -33,102 +33,29 @@ Progress: [==========] 100%
 | 04-ai-guzman | 3/3 | 12min | 4min |
 | 05-engagement | 2/2 | 10min | 5min |
 
-**Recent Trend:**
-- Last 5 plans: 04-02 (3min), 04-03 (4min), 05-01 (5min), 05-02 (5min)
-- Trend: consistent, ~4-5min per plan
-
-*Updated after each plan completion*
-
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- grammY over Telegraf (Telegraf EOL Feb 2025; grammY has native Supabase adapter)
-- Database-first state, NOT sessions (race condition risk with concurrent players)
-- Template fallbacks before AI (game must never block on OpenAI failure)
-- Message queue is foundational (Telegram 20 msg/min per group rate limit)
-- Custom FSM over XState (8 linear states, zero-dependency)
-- Use type aliases instead of interfaces for Supabase Database types (interfaces lack implicit index signatures needed by Supabase generics)
-- Type assertions on .select('*') return values (Supabase v2.95 resolves select() as {} without column-level type inference)
-- All outbound group messages route through MessageQueue.send(), never direct bot.api.sendMessage
-- Deep link payload format: g_{chatId} for positive, g_n{absId} for negative group IDs
-- Singleton factory for MessageQueue (createMessageQueue at startup, getMessageQueue everywhere else)
-- InlineKeyboard with Regler button on all /start welcome messages (direct and deep link)
-- Placeholder rules callback replaced with real rules:roller routing in Phase 2 Plan 03
-- dotenv as runtime dependency for .env loading (Node.js does not auto-load .env)
-- Handler modules as Composer instances registered via bot.use()
-- Bot startup order: config -> bot -> plugins -> queue -> handlers -> error handler -> shutdown -> start
-- Start button visible to all but handler checks game.admin_user_id (Telegram doesn't support per-user inline keyboards)
-- Callback data format: action:uuid (join:, leave:, start:) -- all under 64 bytes
-- Upsert with onConflict for addPlayerToGame to handle double-click race conditions
-- Admin name looked up from players table by admin_user_id, not from callback ctx.from
-- node:crypto randomInt for Fisher-Yates shuffle (security-critical role assignment)
-- Promise.all for simultaneous DM delivery via separate MessageQueue lanes per chat
-- Catch-and-log per DM -- partial DM failure does not revert game state
-- Game commands as separate Composer (gameCommandsHandler) registered after lobbyHandler
-- Paginated inline keyboard navigation via callback data (rules:page pattern)
-- Dual-context commands: /regler and /status work in both group and DM with different behavior
-- Module-level constants for rules page strings to avoid self-reference in MESSAGES object
-- getPlayerActiveGame returns Game + GamePlayer tuple for efficient DM status display
-- Croner 10.x for zero-dependency ESM-native timezone-aware cron scheduling
-- Pure FSM functions (no class, no side effects) for testable phase transitions
-- UNIQUE constraint on sista_chansen(game_id) for atomic first-guess-wins
-- Global scheduler (not per-game) with DB queries per tick for restart safety
-- Upsert with onConflict for castVote and castMissionAction (double-click safety)
-- Shared handleVoteResult function for both callback and scheduler vote resolution paths
-- deleteVotesForRound on Capo rotation to allow fresh voting cycle
-- Callback data uses full round UUID (nt:{uuid}:{idx}) -- well within 64-byte limit
-- Toggleable inline keyboard: [x]/[ ] prefix per button, rebuild on each toggle
-- Shared resolveExecution helper for both early resolution and 21:00 scheduler
-- Default to Sakra (loyalty assumed) at 18:00 for missing mission actions
-- Game state set to finished on win (Sista Chansen intercepts in Plan 04)
-- getPhaseDisplayName maps round phases to Swedish for /status display
-- Module-level botRef set in createScheduleHandlers for resolveExecution to access bot instance
-- In-memory Maps for Sista Chansen transient state (DM message IDs, timeouts, candidates) -- ephemeral, not DB
-- Candidates = all players minus guessers to prevent information leakage
-- Game stays active during Sista Chansen; transitions to finished only after performFinalReveal
-- Optional OPENAI_API_KEY -- game runs on templates when key is missing (graceful degradation)
-- gpt-4o-mini for narrative/whisper tiers, gpt-4.1-nano for commentary (cost optimization)
-- zodResponseFormat for structured whisper output (truth_level enum)
-- Narrative context compression: keep last 3 rounds detailed, drop beats for older rounds
-- client.chat.completions.parse() in OpenAI SDK v6 (not deprecated beta path)
-- SUSPENSE_1 kept as static template before AI reveal -- short atmospheric pause doesn't benefit from AI generation
-- Narrative context updated on kaos-fail path too -- story arc tracks all round outcomes for continuity
-- Math.random for template variant selection -- non-security-critical, crypto not needed
-- Fire-and-forget pattern for event whispers (triggerEventWhisper().catch()) -- non-blocking
-- Quiet threshold: < 2 messages in 2 hours during 09:00-21:00 for gap-fill trigger
-- GameLoopScheduleHandlers Omit type to separate game-loop and whisper handler returns
-- Combined schedule handlers in bot.ts via spread operator (game-loop + whisper)
-- Freeform text handler registered LAST in Composer with next() guard to avoid eating other DM text messages
-- Pending whisper state uses in-memory Map with 5-minute TTL (same pattern as Sista Chansen)
-- UNIQUE constraint on surveillance(game_id, surveiller_player_id, round_number) for once-per-round enforcement
-- 40% surveillance target notification chance using node:crypto randomInt
-- Whisper relay uses narrative tier (gpt-4o-mini); surveillance clue uses commentary tier (gpt-4.1-nano)
-- Role hints in anonymous whisper relay are Guzman-flavored cryptic hints, never direct role reveals
-- 75% truthful threshold for Akta Spaning using node:crypto randomInt (same module as existing patterns)
-- Hogra Hand Spaning always 100% truthful with direct presentation
-- gpt-4o-mini for Akta Spaning (needs nuance), gpt-4.1-nano for Hogra Hand and role reveals (simple/cheap)
-- ATOMIC INSERT with catch for one-per-game Spaning enforcement (same pattern as Sista Chansen)
-- getRoundPointValue pure function: rounds 4-5 return 2, rounds 1-3 return 1
-- Double points capped at 3 via Math.min in both resolveExecution and handleKaosFail
-- Role reveal order: Akta first (warm), Hogra Hand middle (respectful), Golare last (maximum drama)
-- FINAL_REVEAL template preserved but no longer used in performFinalReveal
+Key patterns established in v1:
+- Database-first state, NOT sessions
+- All outbound group messages through MessageQueue.send()
+- Handler modules as Composer instances via bot.use()
+- Template fallbacks on all AI paths
+- Tiered AI models (gpt-4o-mini / gpt-4.1-nano)
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-- Bot cannot DM users who haven't /start'd -- shapes entire join flow (addressed in Phase 1)
-- OpenAI cost management needed from first AI call (addressed in Phase 4)
-- 64-byte callback data limit for inline buttons -- use server-side lookup with hash keys
+- In-memory Maps for Sista Chansen/whisper state lost on restart (v1 trade-off, revisit if problematic)
+- Global mutable botRef for scheduler access (revisit if architecture evolves)
 
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 05-02-PLAN.md (Spaning, Double Scoring, Role Reveal). All 15 plans across 5 phases complete.
+Stopped at: v1 milestone complete. Starting v1.1.
 Resume file: None

@@ -1,3 +1,13 @@
+# Requirements Archive: v1 MVP
+
+**Archived:** 2026-02-11
+**Status:** ✅ SHIPPED
+
+This is the archived requirements specification for v1.
+For current requirements, see `.planning/REQUIREMENTS.md` (created for next milestone).
+
+---
+
 # Requirements: Golare
 
 **Defined:** 2026-02-10
@@ -135,9 +145,16 @@
 
 **Coverage:**
 - v1 requirements: 36 total
-- Mapped to phases: 36
+- Shipped: 36
 - Unmapped: 0
 
 ---
-*Requirements defined: 2026-02-10*
-*Last updated: 2026-02-11 -- all 36 v1 requirements complete*
+
+## Milestone Summary
+
+**Shipped:** 36 of 36 v1 requirements
+**Adjusted:** None — all requirements shipped as originally defined
+**Dropped:** None
+
+---
+*Archived: 2026-02-11 as part of v1 milestone completion*
