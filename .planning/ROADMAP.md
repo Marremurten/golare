@@ -32,9 +32,11 @@ Plans:
 **Goal**: Guzman's whisper DMs reference actual player behavior — paraphrasing what players said (twisted, out of context), including behavioral summaries for all players, with prompt rules enforcing oblique references only.
 **Depends on**: Phase 2
 **Requirements**: WHISP-01, WHISP-02, WHISP-03, CONST-03
+**Plans:** 2 plans
 
 Plans:
-- (not yet planned)
+- [ ] 03-01-PLAN.md — Behavioral data helpers and behavior-aware whisper prompt rewrite
+- [ ] 03-02-PLAN.md — AI generation wiring and whisper handler integration
 
 ### Phase 4: Gap-Fill & Accusations
 
