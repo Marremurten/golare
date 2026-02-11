@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 
 ## Current Position
 
-Phase: 02-behavioral-analysis (COMPLETE)
-Plan: 01 complete. Phase 02 done (1/1 plans).
-Status: Phase 02 verified and complete. Behavioral analysis module wired into updateNarrativeContext.
-Last activity: 2026-02-11 — Phase 02 complete, verified ✓
+Phase: 03-whisper-integration (IN PROGRESS)
+Plan: 01 of 02 complete.
+Status: Plan 01 complete -- behavioral data helpers and rewritten whisper prompt. Plan 02 (caller updates) next.
+Last activity: 2026-02-11 — 03-01 complete, verified
 
-Progress: [####......] 40% (v1.1 — 2/5 phases, 3 plans complete)
+Progress: [#####.....] 50% (v1.1 -- 2/5 phases, 4 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 18
+- Total plans completed: 19
 - Average duration: 6min
-- Total execution time: 1.63 hours
+- Total execution time: 1.66 hours
 
 **By Phase:**
 
@@ -35,6 +35,7 @@ Progress: [####......] 40% (v1.1 — 2/5 phases, 3 plans complete)
 | **v1.1** | | | |
 | 01-data-pipeline | 2/2 | 5min | 2.5min |
 | 02-behavioral-analysis | 1/1 | 2min | 2min |
+| 03-whisper-integration | 1/2 | 2min | 2min |
 
 ## Accumulated Context
 
@@ -56,6 +57,9 @@ v1.1 decisions:
 - Heuristic Swedish keyword matching for tone classification (zero ML deps, CONST-01)
 - Anomaly detection relative to player's own history across rounds (not group baseline)
 - Non-critical behavioral analysis: failure never blocks game loop (CONST-04)
+- Round-based whisper escalation: vague (1-2), specific (3), pointed (4-5) -- solves thin-data problem
+- FORSAKRAN as 4th whisper strategy -- trust/reassurance as manipulation alongside truth/half-truth/lie
+- Role-aware prompt calibration: PlayerRole determines Guzman tone (aggressive/seductive/respectful), never content
 
 ### Pending Todos
 
@@ -69,5 +73,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Phase 02-behavioral-analysis complete (1/1 plans). Verified ✓. Ready for phase 03.
+Stopped at: Completed 03-01-PLAN.md. Phase 03 plan 01 done. Plan 02 (caller updates) next.
 Resume file: None
