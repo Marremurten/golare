@@ -23,6 +23,8 @@ import type {
   SurveillanceInsert,
   PlayerSpaning,
   PlayerSpaningInsert,
+  PlayerMessage,
+  PlayerMessageInsert,
 } from "./types.js";
 import { config } from "../config.js";
 
@@ -904,4 +906,67 @@ export async function getPlayerSpaning(
   }
 
   return data as PlayerSpaning | null;
+}
+
+// ---------------------------------------------------------------------------
+// Player Messages CRUD (v1.1 Data Pipeline)
+// ---------------------------------------------------------------------------
+
+/**
+ * Store a player message (fire-and-forget). Ring buffer pruning
+ * is handled by the database trigger.
+ */
+export async function createPlayerMessage(
+  msg: PlayerMessageInsert,
+): Promise<void> {
+  const { error } = await supabase
+    .from("player_messages")
+    .insert(msg);
+
+  if (error) {
+    throw new Error(`createPlayerMessage failed: ${error.message}`);
+  }
+}
+
+/**
+ * Get recent messages for a specific player in a game.
+ * Returns up to `limit` messages, newest first.
+ */
+export async function getRecentPlayerMessages(
+  gameId: string,
+  gamePlayerId: string,
+  limit: number = 10,
+): Promise<PlayerMessage[]> {
+  const { data, error } = await supabase
+    .from("player_messages")
+    .select("*")
+    .eq("game_id", gameId)
+    .eq("game_player_id", gamePlayerId)
+    .order("sent_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    throw new Error(`getRecentPlayerMessages failed: ${error.message}`);
+  }
+
+  return (data ?? []) as PlayerMessage[];
+}
+
+/**
+ * Get all recent messages for a game (all players), newest first.
+ */
+export async function getAllRecentMessages(
+  gameId: string,
+): Promise<PlayerMessage[]> {
+  const { data, error } = await supabase
+    .from("player_messages")
+    .select("*")
+    .eq("game_id", gameId)
+    .order("sent_at", { ascending: false });
+
+  if (error) {
+    throw new Error(`getAllRecentMessages failed: ${error.message}`);
+  }
+
+  return (data ?? []) as PlayerMessage[];
 }

@@ -225,6 +225,22 @@ export type PlayerSpaning = {
 export type PlayerSpaningInsert = Omit<PlayerSpaning, "id" | "used_at">;
 
 // ---------------------------------------------------------------------------
+// Player messages types (v1.1)
+// ---------------------------------------------------------------------------
+
+/** Full player_messages row as returned from the database */
+export type PlayerMessage = {
+  id: string;
+  game_id: string;
+  game_player_id: string;
+  message_text: string;
+  sent_at: string;
+};
+
+/** Insert type for player_messages (id and sent_at auto-generated) */
+export type PlayerMessageInsert = Omit<PlayerMessage, "id" | "sent_at">;
+
+// ---------------------------------------------------------------------------
 // Supabase Database type definition
 // ---------------------------------------------------------------------------
 
@@ -404,6 +420,25 @@ export type Database = {
           {
             foreignKeyName: "player_spanings_target_player_id_fkey";
             columns: ["target_player_id"];
+            referencedRelation: "game_players";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      player_messages: {
+        Row: PlayerMessage;
+        Insert: PlayerMessageInsert;
+        Update: Partial<PlayerMessageInsert>;
+        Relationships: [
+          {
+            foreignKeyName: "player_messages_game_id_fkey";
+            columns: ["game_id"];
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "player_messages_game_player_id_fkey";
+            columns: ["game_player_id"];
             referencedRelation: "game_players";
             referencedColumns: ["id"];
           },
