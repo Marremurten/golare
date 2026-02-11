@@ -252,31 +252,120 @@ Håll meddelandet under 500 tecken. Använd <b> och <i> för formatering.`;
 }
 
 /**
- * Build the user message for gap-fill commentary.
+ * Build the user message for mood-aware gap-fill commentary.
+ *
+ * Gap-fill commentary is ALWAYS provocative regardless of mood (locked user decision).
+ * The mood parameter adapts the content/angle but not the provocative intent.
  */
 export function buildGapFillPrompt(
   gameContext: GuzmanContext,
   recentActivity: string,
   playerNames: string[],
+  groupMood: string,
 ): string {
-  return `Skriv en kort kommentar från Guzman under en lugn period i spelet.
+  // Mood description for prompt context
+  const moodDescription =
+    groupMood === "tense"
+      ? "Spänt -- folk anklagar varandra, misstänksamhet i luften"
+      : groupMood === "calm"
+        ? "Lugnt -- för lugnt. Ingen snackar, ingen rör sig."
+        : "Aktivt -- folk diskuterar, men det saknas dramatik";
+
+  // Mood-specific provocative guidance
+  let moodGuidance: string;
+  if (groupMood === "tense") {
+    moodGuidance = "Gruppen är redan på kant -- häll bensin på elden. Nämn att nån beter sig konstigt utan att vara specifik.";
+  } else if (groupMood === "calm") {
+    moodGuidance = "Det är för tyst. Ifrågasätt tystnaden. Varför pratar ingen? Vad gömmer dom?";
+  } else {
+    moodGuidance = "Folk snackar men nån gömmer sig. Droppa en mystisk observation.";
+  }
+
+  return `Skriv en kort provocerande kommentar från Guzman under spelet.
 
 KONTEXT:
 - Spelare: ${playerNames.join(", ")}
 - Stämning: ${gameContext.mood}
 - Senaste händelser: ${recentActivity}
 
+STÄMNING I GRUPPEN: ${moodDescription}
+
 UPPGIFT:
-Skriv en kort (1-3 meningar) kommentar. Det kan vara:
-- En paranoid observation ("Jag kollar på er...")
-- En rolig anekdot om Ligan
-- Ett subtilt sticka mot en spelare
-- Meta-humor om spelet
-- En dramatisk one-liner
+Skriv en kort (1-3 meningar) provocerande kommentar. ALLTID provocerande -- öka spänningen oavsett stämning.
+
+MOOD-ANPASSNING:
+${moodGuidance}
 
 Använd BARA namnen som listas ovan. Hitta ALDRIG PÅ namn som inte finns i spelet.
 
 Håll det under 300 tecken. Använd <b> och <i> sparsamt.`;
+}
+
+// ---------------------------------------------------------------------------
+// Accusation prompt builder
+// ---------------------------------------------------------------------------
+
+/**
+ * Build the prompt for a public group chat accusation.
+ *
+ * Constraints from user decisions:
+ * - Guzman only comments on actual observed behavior -- never fabricates
+ * - Accusations reference specific things players said or did
+ * - Street boss intimidation -- direct, aggressive orten-slang
+ * - Mix of direct @mentions and third-person references
+ * - Accusation prompt MUST NEVER receive player roles
+ * - Frequency control (max 2 per round) is the caller's responsibility
+ *
+ * Note: No roundNumber parameter -- frequency handled by caller, not prompt.
+ */
+export function buildAccusationPrompt(
+  targetName: string,
+  anomalies: string,
+  evidence: string,
+  playerNames: string[],
+  gameContext: GuzmanContext,
+): string {
+  // Map anomaly strings to natural Swedish descriptions
+  const anomalyDescriptions: Record<string, string> = {
+    "tystnat plotsligt": "spelaren har blivit tyst",
+    "aggressionsökning": "spelaren har börjat snacka aggressivt",
+    "aktivitet sjunkit": "spelaren drar sig tillbaka",
+    "beteendeförändring": "spelaren beter sig annorlunda",
+  };
+
+  // Build human-readable anomaly description, falling back to raw text
+  const anomalyParts = anomalies.split(", ").map(
+    (a) => anomalyDescriptions[a.trim()] ?? a.trim(),
+  );
+  const anomalyDescription = anomalyParts.join(" och ");
+
+  return `Skriv en kort, aggressiv anklagelse från Guzman i gruppchatt mot <b>${targetName}</b>.
+
+SPELARE I SPELET: ${playerNames.join(", ")}
+STÄMNING: ${gameContext.mood}
+
+OBSERVERAT BETEENDE (BASERA ANKLAGELSEN PÅ DETTA):
+- Vad som hänt: ${anomalyDescription}
+- Ton: ${evidence}
+
+STIL:
+Guzman är en street boss som inte tolererar skumt beteende. Skriv 1-3 meningar med orten-slang och intimidation.
+
+Välj EN stil (variera):
+A) Direkt @mention: "Yo <b>${targetName}</b>, vad händer med dig, bre?" -- konfrontera rakt på
+B) Tredjeperson: "Nån i familjen har blivit lite FÖR tyst..." -- indirekt men alla fattar vem
+
+TONALITET:
+- 70% statement-drops: konstatera beteendet hotfullt ("Jag ser vad du gör, mannen...")
+- 30% provokativa frågor: "Vad tycker ni, bre? Nån som beter sig skumt?"
+
+KRITISKA REGLER:
+- ALDRIG avslöja roller
+- ALDRIG hitta på beteenden som inte observerats
+- Basera ALLT på den anomali som beskrivs ovan
+- Använd BARA namnen som listas ovan. Hitta ALDRIG PÅ namn som inte finns i spelet.
+
+Max 400 tecken. Använd <b> och <i> för formatering.`;
 }
 
 // ---------------------------------------------------------------------------
