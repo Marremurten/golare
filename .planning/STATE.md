@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** The social deduction experience -- paranoia, accusations, and bluffing between friends -- driven by an AI game master that actively stirs conflict and keeps every player engaged.
-**Current focus:** Phase 4: AI Guzman (COMPLETE)
+**Current focus:** Phase 5: Engagement (IN PROGRESS)
 
 ## Current Position
 
-Phase: 4 of 5 (AI Guzman)
-Plan: 3 of 3 in current phase (3 done)
-Status: Complete
-Last activity: 2026-02-10 -- Phase 4 Plan 03 (Whispers & Gap-fill) complete. Phase 4 done.
+Phase: 5 of 5 (Engagement)
+Plan: 1 of 2 in current phase (1 done)
+Status: In Progress
+Last activity: 2026-02-11 -- Phase 5 Plan 01 (Whispers & Surveillance) complete.
 
-Progress: [=========.] 93%
+Progress: [=========.] 95%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 14
 - Average duration: 6min
-- Total execution time: 1.36 hours
+- Total execution time: 1.44 hours
 
 **By Phase:**
 
@@ -31,10 +31,11 @@ Progress: [=========.] 93%
 | 02-game-lobby | 3/3 | 12min | 4min |
 | 03-game-loop | 4/4 | 26min | 6.5min |
 | 04-ai-guzman | 3/3 | 12min | 4min |
+| 05-engagement | 1/2 | 5min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 03-04 (9min), 04-01 (5min), 04-02 (3min), 04-03 (4min)
-- Trend: consistent, accelerating
+- Last 5 plans: 04-01 (5min), 04-02 (3min), 04-03 (4min), 05-01 (5min)
+- Trend: consistent, ~4-5min per plan
 
 *Updated after each plan completion*
 
@@ -101,6 +102,12 @@ Recent decisions affecting current work:
 - Quiet threshold: < 2 messages in 2 hours during 09:00-21:00 for gap-fill trigger
 - GameLoopScheduleHandlers Omit type to separate game-loop and whisper handler returns
 - Combined schedule handlers in bot.ts via spread operator (game-loop + whisper)
+- Freeform text handler registered LAST in Composer with next() guard to avoid eating other DM text messages
+- Pending whisper state uses in-memory Map with 5-minute TTL (same pattern as Sista Chansen)
+- UNIQUE constraint on surveillance(game_id, surveiller_player_id, round_number) for once-per-round enforcement
+- 40% surveillance target notification chance using node:crypto randomInt
+- Whisper relay uses narrative tier (gpt-4o-mini); surveillance clue uses commentary tier (gpt-4.1-nano)
+- Role hints in anonymous whisper relay are Guzman-flavored cryptic hints, never direct role reveals
 
 ### Pending Todos
 
@@ -114,6 +121,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-10
-Stopped at: Completed 04-03-PLAN.md (Whispers & Gap-fill). Phase 4 complete. Ready for Phase 5.
+Last session: 2026-02-11
+Stopped at: Completed 05-01-PLAN.md (Engagement Mechanics). Ready for Plan 02.
 Resume file: None
