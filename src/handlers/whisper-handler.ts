@@ -19,10 +19,17 @@ import {
   createWhisper,
   getRecentPlayerMessages,
 } from "../db/client.js";
-import { selectQuotesForWhisper, buildAllPlayerOverview } from "../lib/behavioral-analysis.js";
+import {
+  selectQuotesForWhisper,
+  buildAllPlayerOverview,
+  analyzeBehavior,
+  computeGroupMood,
+  selectAccusationTarget,
+} from "../lib/behavioral-analysis.js";
 import {
   generateWhisperMessage,
   generateGapFillComment,
+  generateAccusation,
   getGuzmanContext,
 } from "../lib/ai-guzman.js";
 import { getMessageQueue } from "../queue/message-queue.js";
@@ -95,6 +102,75 @@ function isGroupQuiet(chatId: number): boolean {
 
   // < 2 messages in current window = quiet
   return entry.count < 2;
+}
+
+// ---------------------------------------------------------------------------
+// Accusation frequency tracking
+// ---------------------------------------------------------------------------
+
+type AccusationState = {
+  roundNumber: number;
+  count: number;
+  lastTargetName: string | null;
+};
+
+/** Per-game accusation tracking. Resets when round changes. */
+const accusationTracking = new Map<string, AccusationState>();
+
+/**
+ * Check if an accusation is allowed for this game in the current round.
+ * Max 2 accusations per round across ALL rounds (locked user decision).
+ * No round-based escalation -- consistent limit.
+ * Resets tracking when a new round is detected.
+ */
+function canAccuse(gameId: string, currentRound: number): boolean {
+  const state = accusationTracking.get(gameId);
+  if (!state || state.roundNumber !== currentRound) {
+    // New round or first check -- reset and allow
+    return true;
+  }
+  return state.count < 2;
+}
+
+/**
+ * Record that an accusation was sent, updating tracking state.
+ */
+function recordAccusation(gameId: string, roundNumber: number, targetName: string): void {
+  const state = accusationTracking.get(gameId);
+  if (!state || state.roundNumber !== roundNumber) {
+    accusationTracking.set(gameId, { roundNumber, count: 1, lastTargetName: targetName });
+  } else {
+    state.count++;
+    state.lastTargetName = targetName;
+  }
+}
+
+/**
+ * Get the last accused player name for a game (for same-player-twice-in-a-row prevention).
+ */
+function getLastTargetName(gameId: string): string | null {
+  const state = accusationTracking.get(gameId);
+  return state?.lastTargetName ?? null;
+}
+
+/**
+ * Determine if gap-fill should fire based on group mood.
+ * - tense: always send (keep pressure up)
+ * - active: only when group is quiet (existing behavior)
+ * - calm: never send (let calm games breathe)
+ *
+ * Per user decision: "Mood adaptation affects both content and timing --
+ * tense games get more frequent gap-fills, calm games get less"
+ */
+function shouldSendGapFill(mood: string, isQuiet: boolean): boolean {
+  switch (mood) {
+    case "tense":
+      return true;
+    case "calm":
+      return false;
+    default: // "active" or unknown
+      return isQuiet;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -327,7 +403,16 @@ async function runScheduledWhispers(): Promise<void> {
 // ---------------------------------------------------------------------------
 
 /**
- * Send gap-fill commentary to quiet groups.
+ * Send mood-adaptive gap-fill commentary and piggybacked accusations.
+ *
+ * For each active game:
+ * 1. Fetch fresh behavioral data (not stale GuzmanContext.playerNotes)
+ * 2. Compute group mood
+ * 3. Attempt accusation (priority over gap-fill)
+ * 4. If no accusation fired, attempt mood-gated gap-fill
+ *
+ * Accusations: max 2 per round (locked decision), never same player twice
+ * in a row, null-on-failure (CONST-04).
  */
 async function runGapFill(): Promise<void> {
   try {
@@ -335,9 +420,6 @@ async function runGapFill(): Promise<void> {
 
     for (const game of games) {
       try {
-        // Check if group is quiet
-        if (!isGroupQuiet(game.group_chat_id)) continue;
-
         const round = await getCurrentRound(game.id);
         if (!round) continue;
 
@@ -348,14 +430,74 @@ async function runGapFill(): Promise<void> {
         const playerNames = players.map((p) => displayName(p.players));
         const recentActivity = gatherRoundEvents(game, round, players);
 
+        // Fetch FRESH behavioral data (stale GuzmanContext.playerNotes
+        // is only updated at result reveal -- Pitfall 2 from research)
+        let freshPlayerNotes = guzmanCtx.playerNotes;
+        try {
+          const { playerNotes } = await analyzeBehavior(game.id);
+          freshPlayerNotes = playerNotes;
+        } catch (err) {
+          console.warn(
+            "[whisper] Fresh behavioral analysis failed, using existing playerNotes:",
+            err instanceof Error ? err.message : err,
+          );
+        }
+
+        // Compute group mood
+        const mood = computeGroupMood(freshPlayerNotes);
+        console.log(`[whisper] Group mood for game ${game.id}: ${mood}`);
+
+        // --- ACCUSATION ATTEMPT (priority over gap-fill) ---
+        let accusationFired = false;
+
+        if (canAccuse(game.id, round.round_number)) {
+          const target = selectAccusationTarget(
+            freshPlayerNotes,
+            getLastTargetName(game.id),
+          );
+
+          if (target) {
+            const accusationText = await generateAccusation(
+              target.name,
+              target.anomalies,
+              target.evidence,
+              playerNames,
+              guzmanCtx,
+            );
+
+            if (accusationText) {
+              const queue = getMessageQueue();
+              await queue.send(game.group_chat_id, accusationText, {
+                parse_mode: "HTML",
+              });
+
+              recordAccusation(game.id, round.round_number, target.name);
+              accusationFired = true;
+
+              console.log(
+                `[whisper] Accusation sent to group ${game.group_chat_id} targeting ${target.name} in game ${game.id}`,
+              );
+            }
+          }
+        }
+
+        // --- GAP-FILL ATTEMPT (only if no accusation fired) ---
+        if (accusationFired) {
+          console.log(
+            `[whisper] Skipping gap-fill for game ${game.id} -- accusation fired`,
+          );
+          continue;
+        }
+
+        if (!shouldSendGapFill(mood, isGroupQuiet(game.group_chat_id))) continue;
+
         const comment = await generateGapFillComment(
           guzmanCtx,
           recentActivity,
           playerNames,
-          "active", // Default mood -- Plan 02 will wire computeGroupMood here
+          mood,
         );
 
-        // AI unavailable or returned null -- skip silently
         if (!comment) continue;
 
         const queue = getMessageQueue();
