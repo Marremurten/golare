@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-02-11)
 
 **Core value:** The social deduction experience -- paranoia, accusations, and bluffing between friends -- driven by an AI game master that actively stirs conflict and keeps every player engaged.
-**Current focus:** Planning next milestone
+**Current focus:** v1.1 — AI Behavioral Awareness
 
 ## Current Position
 
-Phase: Not started (v1 complete, defining next milestone)
+Phase: Not started (defining requirements)
 Plan: —
-Status: Milestone v1 shipped. Ready for next milestone.
-Last activity: 2026-02-11 — v1 milestone complete
+Status: Defining requirements for v1.1
+Last activity: 2026-02-11 — Milestone v1.1 started
 
 Progress: [==========] 100% (v1)
 

@@ -47,7 +47,15 @@ The social deduction experience — the paranoia, accusations, and bluffing betw
 
 ### Active
 
-(Defining for next milestone)
+**Current Milestone: v1.1 — AI Behavioral Awareness**
+
+**Goal:** Make Guzman reactive to real player behavior — tracking what players write in group chat and using that data to personalize whispers, adapt narratives, and call out suspicious behavior.
+
+- [ ] Track player messages in group chat (last ~10 per player, stored in DB)
+- [ ] Analyze message frequency and tone per player (internal stats for AI)
+- [ ] Whispers reference actual player messages (twisted, out of context)
+- [ ] Mission narratives adapt to group mood (active/quiet, aggressive/cautious)
+- [ ] Guzman accusations: calls out suspicious silence or aggressive behavior in group
 
 ### Out of Scope
 
@@ -131,4 +139,4 @@ Ligans paranoida ledare. Litar inte på någon, stressad över polisen, hotar st
 | Global botRef for scheduler | Scheduler needs bot instance; acceptable bridge pattern | ⚠️ Revisit |
 
 ---
-*Last updated: 2026-02-11 after v1 milestone*
+*Last updated: 2026-02-11 after v1.1 milestone start*
