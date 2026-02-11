@@ -66,9 +66,9 @@
 | WHISP-01 | Phase 3: Whisper Integration | Complete |
 | WHISP-02 | Phase 3: Whisper Integration | Complete |
 | WHISP-03 | Phase 3: Whisper Integration | Complete |
-| GROUP-01 | Phase 4: Gap-Fill & Accusations | Pending |
-| GROUP-02 | Phase 4: Gap-Fill & Accusations | Pending |
-| GROUP-03 | Phase 4: Gap-Fill & Accusations | Pending |
+| GROUP-01 | Phase 4: Gap-Fill & Accusations | Complete |
+| GROUP-02 | Phase 4: Gap-Fill & Accusations | Complete |
+| GROUP-03 | Phase 4: Gap-Fill & Accusations | Complete |
 | GROUP-04 | Phase 5: Mission Adaptation | Pending |
 | CONST-01 | All Phases | Pending |
 | CONST-02 | All Phases | Pending |

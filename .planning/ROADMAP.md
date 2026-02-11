@@ -39,16 +39,17 @@ Plans:
 - [x] 03-01-PLAN.md — Behavioral data helpers and behavior-aware whisper prompt rewrite
 - [x] 03-02-PLAN.md — AI generation wiring and whisper handler integration
 
-### Phase 4: Gap-Fill & Accusations
+### Phase 4: Gap-Fill & Accusations ✓
 
 **Goal**: Gap-fill commentary adapts to group mood, and Guzman publicly calls out suspicious behavior (silence, aggression spikes) with controlled frequency — making the group chat feel like Guzman is always watching.
 **Depends on**: Phase 3
 **Requirements**: GROUP-01, GROUP-02, GROUP-03, CONST-04
 **Plans:** 2 plans
+**Completed:** 2026-02-11
 
 Plans:
-- [ ] 04-01-PLAN.md — Group mood computation, accusation target selection, prompt builders, and generateAccusation
-- [ ] 04-02-PLAN.md — Accusation delivery, frequency tracking, and mood-adaptive gap-fill wiring in whisper-handler
+- [x] 04-01-PLAN.md — Group mood computation, accusation target selection, prompt builders, and generateAccusation
+- [x] 04-02-PLAN.md — Accusation delivery, frequency tracking, and mood-adaptive gap-fill wiring in whisper-handler
 
 ### Phase 5: Mission Adaptation
 
