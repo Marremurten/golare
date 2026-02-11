@@ -38,11 +38,11 @@
 
 ### Engagement
 
-- [ ] **ENGAGE-01**: Anonymous whispers: non-team players can send anonymous messages to group via Guzman
-- [ ] **ENGAGE-02**: Surveillance: non-team players can "surveil" a team member for a cryptic clue about their action
-- [ ] **ENGAGE-03**: Äkta-verktyg: each player gets one "Spaning" per game (ask Guzman about a player — answer may be true or false)
-- [ ] **ENGAGE-04**: Anti-blowout: final 1-2 rounds worth double points for comeback possibility
-- [ ] **ENGAGE-05**: Role reveal at game end — full transparency of all roles, actions taken, and who betrayed whom
+- [x] **ENGAGE-01**: Anonymous whispers: non-team players can send anonymous messages to group via Guzman
+- [x] **ENGAGE-02**: Surveillance: non-team players can "surveil" a team member for a cryptic clue about their action
+- [x] **ENGAGE-03**: Äkta-verktyg: each player gets one "Spaning" per game (ask Guzman about a player — answer may be true or false)
+- [x] **ENGAGE-04**: Anti-blowout: final 1-2 rounds worth double points for comeback possibility
+- [x] **ENGAGE-05**: Role reveal at game end — full transparency of all roles, actions taken, and who betrayed whom
 
 ### AI Guzman
 
@@ -118,11 +118,11 @@
 | LOOP-08 | Phase 3: Game Loop | Complete |
 | LOOP-09 | Phase 3: Game Loop | Complete |
 | LOOP-10 | Phase 3: Game Loop | Complete |
-| ENGAGE-01 | Phase 5: Engagement | Pending |
-| ENGAGE-02 | Phase 5: Engagement | Pending |
-| ENGAGE-03 | Phase 5: Engagement | Pending |
-| ENGAGE-04 | Phase 5: Engagement | Pending |
-| ENGAGE-05 | Phase 5: Engagement | Pending |
+| ENGAGE-01 | Phase 5: Engagement | Complete |
+| ENGAGE-02 | Phase 5: Engagement | Complete |
+| ENGAGE-03 | Phase 5: Engagement | Complete |
+| ENGAGE-04 | Phase 5: Engagement | Complete |
+| ENGAGE-05 | Phase 5: Engagement | Complete |
 | AI-01 | Phase 4: AI Guzman | Complete |
 | AI-02 | Phase 4: AI Guzman | Complete |
 | AI-03 | Phase 4: AI Guzman | Complete |
@@ -140,4 +140,4 @@
 
 ---
 *Requirements defined: 2026-02-10*
-*Last updated: 2026-02-10 after roadmap creation -- all 36 requirements mapped*
+*Last updated: 2026-02-11 -- all 36 v1 requirements complete*
