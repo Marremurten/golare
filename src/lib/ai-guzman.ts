@@ -167,19 +167,45 @@ export async function generateResultReveal(
 
 /** Zod schema for structured whisper response */
 const WhisperResponseSchema = z.object({
-  truth_level: z.enum(["truth", "half_truth", "lie"]),
+  truth_level: z.enum(["truth", "half_truth", "lie", "reassurance"]),
   message: z.string(),
 });
 
 /**
+ * Check if any target quote (8+ chars) appears verbatim in the generated message.
+ * Returns true if a verbatim match is found.
+ */
+function containsVerbatimQuote(
+  message: string,
+  targetQuotes: string[],
+): boolean {
+  const lowerMessage = message.toLowerCase();
+  for (const quote of targetQuotes) {
+    if (quote.length < 8) continue;
+    if (lowerMessage.includes(quote.toLowerCase())) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Generate a whisper (manipulative DM) message for a player.
  * Returns null on any failure -- whispers are optional.
+ *
+ * Includes verbatim safety check: if any target quote (8+ chars) appears
+ * in the generated message, retries once. If retry also matches, returns
+ * it anyway (CONST-04: never block whispers).
  */
 export async function generateWhisperMessage(
   gameContext: GuzmanContext,
   targetPlayerName: string,
+  targetRole: PlayerRole,
   otherPlayerNames: string[],
   roundEvents: string,
+  targetQuotes: string[],
+  allPlayerOverview: string,
+  roundNumber: number,
 ): Promise<{ message: string; truthLevel: TruthLevel } | null> {
   try {
     const client = getAIClient();
@@ -187,26 +213,33 @@ export async function generateWhisperMessage(
       return null;
     }
 
-    const response = await client.chat.completions.parse({
-      model: MODEL_MAP.whisper,
-      messages: [
-        { role: "system", content: buildGuzmanSystemPrompt() },
-        {
-          role: "user",
-          content: buildWhisperPrompt(
-            gameContext,
-            targetPlayerName,
-            otherPlayerNames,
-            roundEvents,
-          ),
-        },
-      ],
-      max_tokens: 400,
-      temperature: 1.0,
-      response_format: zodResponseFormat(WhisperResponseSchema, "whisper"),
-    });
+    const makeRequest = () =>
+      client.chat.completions.parse({
+        model: MODEL_MAP.whisper,
+        messages: [
+          { role: "system", content: buildGuzmanSystemPrompt() },
+          {
+            role: "user",
+            content: buildWhisperPrompt(
+              gameContext,
+              targetPlayerName,
+              targetRole,
+              otherPlayerNames,
+              roundEvents,
+              targetQuotes,
+              allPlayerOverview,
+              roundNumber,
+            ),
+          },
+        ],
+        max_tokens: 500,
+        temperature: 1.0,
+        response_format: zodResponseFormat(WhisperResponseSchema, "whisper"),
+      });
 
-    const parsed = response.choices[0]?.message?.parsed;
+    let response = await makeRequest();
+
+    let parsed = response.choices[0]?.message?.parsed;
     if (!parsed) {
       console.warn(
         "[ai-guzman] Empty response for whisper, skipping",
@@ -214,9 +247,33 @@ export async function generateWhisperMessage(
       return null;
     }
 
+    // Verbatim safety check: retry once if a quote appears in the message
+    if (containsVerbatimQuote(parsed.message, targetQuotes)) {
+      console.warn(
+        "[ai-guzman] Verbatim quote detected in whisper, regenerating once",
+      );
+      response = await makeRequest();
+      parsed = response.choices[0]?.message?.parsed;
+      if (!parsed) {
+        console.warn(
+          "[ai-guzman] Empty response on whisper retry, skipping",
+        );
+        return null;
+      }
+      if (containsVerbatimQuote(parsed.message, targetQuotes)) {
+        console.warn(
+          "[ai-guzman] Verbatim quote still present after retry, returning anyway",
+        );
+      }
+    }
+
+    // Map "reassurance" to "truth" (closest in intent) -- TruthLevel type unchanged
+    const truthLevel: TruthLevel =
+      parsed.truth_level === "reassurance" ? "truth" : parsed.truth_level;
+
     return {
       message: sanitizeForTelegram(parsed.message),
-      truthLevel: parsed.truth_level,
+      truthLevel,
     };
   } catch (error) {
     console.warn(
