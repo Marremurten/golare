@@ -59,10 +59,10 @@
 | DATA-02 | Phase 1: Data Pipeline | Complete |
 | DATA-03 | Phase 1: Data Pipeline | Complete |
 | DATA-04 | Phase 1: Data Pipeline | Complete |
-| BEHAV-01 | Phase 2: Behavioral Analysis | Pending |
-| BEHAV-02 | Phase 2: Behavioral Analysis | Pending |
-| BEHAV-03 | Phase 2: Behavioral Analysis | Pending |
-| BEHAV-04 | Phase 2: Behavioral Analysis | Pending |
+| BEHAV-01 | Phase 2: Behavioral Analysis | Complete |
+| BEHAV-02 | Phase 2: Behavioral Analysis | Complete |
+| BEHAV-03 | Phase 2: Behavioral Analysis | Complete |
+| BEHAV-04 | Phase 2: Behavioral Analysis | Complete |
 | WHISP-01 | Phase 3: Whisper Integration | Pending |
 | WHISP-02 | Phase 3: Whisper Integration | Pending |
 | WHISP-03 | Phase 3: Whisper Integration | Pending |

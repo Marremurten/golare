@@ -16,15 +16,16 @@ Plans:
 - [x] 01-01-PLAN.md — Database schema, types, and CRUD for player_messages ring buffer
 - [x] 01-02-PLAN.md — Message capture module, bot middleware wiring, and admin check
 
-### Phase 2: Behavioral Analysis
+### Phase 2: Behavioral Analysis ✓
 
 **Goal**: A behavioral analysis module computes per-player activity stats and tone classifications, builds compressed summaries that populate `GuzmanContext.playerNotes`, and detects behavioral anomalies — still no user-facing changes.
 **Depends on**: Phase 1
 **Requirements**: BEHAV-01, BEHAV-02, BEHAV-03, BEHAV-04, CONST-02
 **Plans:** 1 plan
+**Completed:** 2026-02-11
 
 Plans:
-- [ ] 02-01-PLAN.md — Behavioral analysis module (stats, tone, anomalies, summaries) and integration into updateNarrativeContext
+- [x] 02-01-PLAN.md — Behavioral analysis module (stats, tone, anomalies, summaries) and integration into updateNarrativeContext
 
 ### Phase 3: Whisper Integration
 
