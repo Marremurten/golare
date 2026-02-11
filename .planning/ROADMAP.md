@@ -4,16 +4,17 @@
 
 ## Phases
 
-### Phase 1: Data Pipeline
+### Phase 1: Data Pipeline ✓
 
 **Goal**: Player group messages are captured, stored in a ring buffer (last ~10 per player), and the bot verifies admin status for message visibility — all without any user-facing changes.
 **Depends on**: Nothing (first phase)
 **Requirements**: DATA-01, DATA-02, DATA-03, DATA-04, CONST-01
 **Plans:** 2 plans
+**Completed:** 2026-02-11
 
 Plans:
-- [ ] 01-01-PLAN.md — Database schema, types, and CRUD for player_messages ring buffer
-- [ ] 01-02-PLAN.md — Message capture module, bot middleware wiring, and admin check
+- [x] 01-01-PLAN.md — Database schema, types, and CRUD for player_messages ring buffer
+- [x] 01-02-PLAN.md — Message capture module, bot middleware wiring, and admin check
 
 ### Phase 2: Behavioral Analysis
 

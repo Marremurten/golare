@@ -55,10 +55,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | Phase 1: Data Pipeline | Pending |
-| DATA-02 | Phase 1: Data Pipeline | Pending |
-| DATA-03 | Phase 1: Data Pipeline | Pending |
-| DATA-04 | Phase 1: Data Pipeline | Pending |
+| DATA-01 | Phase 1: Data Pipeline | Complete |
+| DATA-02 | Phase 1: Data Pipeline | Complete |
+| DATA-03 | Phase 1: Data Pipeline | Complete |
+| DATA-04 | Phase 1: Data Pipeline | Complete |
 | BEHAV-01 | Phase 2: Behavioral Analysis | Pending |
 | BEHAV-02 | Phase 2: Behavioral Analysis | Pending |
 | BEHAV-03 | Phase 2: Behavioral Analysis | Pending |
