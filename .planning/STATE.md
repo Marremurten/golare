@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-02-11)
 
 ## Current Position
 
-Phase: 04-gap-fill-accusations
-Plan: 02 of 02 complete.
-Status: Phase 04 complete -- accusation delivery and mood-adaptive gap-fill wired into cron schedule.
-Last activity: 2026-02-11 — 04-02 complete, verified
+Phase: 05-mission-adaptation
+Plan: 01 of 01 complete.
+Status: Phase 05 complete -- mission narratives enriched with mood-aware theming and behavioral commentary.
+Last activity: 2026-02-12 — 05-01 complete, verified
 
-Progress: [#######...] 70% (v1.1 -- 4/5 phases complete, 7 plans complete)
+Progress: [##########] 100% (v1.1 -- 5/5 phases complete, 8 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 21
+- Total plans completed: 22
 - Average duration: 6min
-- Total execution time: 1.77 hours
+- Total execution time: 1.80 hours
 
 **By Phase:**
 
@@ -37,6 +37,7 @@ Progress: [#######...] 70% (v1.1 -- 4/5 phases complete, 7 plans complete)
 | 02-behavioral-analysis | 1/1 | 2min | 2min |
 | 03-whisper-integration | 2/2 | 4min | 2min |
 | 04-gap-fill-accusations | 2/2 | 7min | 3.5min |
+| 05-mission-adaptation | 1/1 | 2min | 2min |
 
 ## Accumulated Context
 
@@ -70,6 +71,9 @@ v1.1 decisions:
 - Accusation fires skip gap-fill for that cron slot (no double messages)
 - Fresh analyzeBehavior at cron time, not stale GuzmanContext.playerNotes
 - Mood-adaptive gating: tense=always, calm=never, active=when quiet
+- Soft mood-to-theme mapping for missions: tense=betrayal, calm=urgency, active=complexity (not deterministic)
+- Behavioral data hard-capped at 500 chars in mission prompt (CONST-02)
+- 70/30 split: mission content vs group dynamics in narrative
 
 ### Pending Todos
 
@@ -82,6 +86,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-11
-Stopped at: Completed 04-02-PLAN.md. Phase 04 complete -- accusation delivery and mood-adaptive gap-fill fully wired. Phase 05 next if applicable.
+Last session: 2026-02-12
+Stopped at: Completed 05-01-PLAN.md. Phase 05 complete -- mission narratives enriched with group dynamics and mood. v1.1 AI Behavioral Awareness complete (all 5 phases done).
 Resume file: None
