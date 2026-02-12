@@ -88,6 +88,36 @@ export class MessageQueue {
   }
 
   /**
+   * Pin a message in a chat. Silently fails if the bot lacks permissions.
+   */
+  async pinMessage(chatId: number, messageId: number): Promise<void> {
+    try {
+      await this.bot.api.pinChatMessage(chatId, messageId, {
+        disable_notification: true,
+      });
+    } catch (err) {
+      console.warn(
+        `[MessageQueue] Failed to pin message ${messageId} in chat ${chatId}:`,
+        err,
+      );
+    }
+  }
+
+  /**
+   * Unpin a specific message in a chat. Silently fails if the bot lacks permissions.
+   */
+  async unpinMessage(chatId: number, messageId: number): Promise<void> {
+    try {
+      await this.bot.api.unpinChatMessage(chatId, messageId);
+    } catch (err) {
+      console.warn(
+        `[MessageQueue] Failed to unpin message ${messageId} in chat ${chatId}:`,
+        err,
+      );
+    }
+  }
+
+  /**
    * Process queued messages for a single chat, one at a time,
    * with minIntervalMs spacing between sends.
    */

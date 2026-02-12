@@ -816,6 +816,9 @@ async function resolveVote(
     await safeEditMessage(bot, game.group_chat_id, round.vote_message_id, revealText, {
       parse_mode: "HTML",
     });
+
+    // Unpin the vote message now that voting is resolved
+    await queue.unpinMessage(game.group_chat_id, round.vote_message_id);
   } else {
     await queue.send(game.group_chat_id, revealText, { parse_mode: "HTML" });
   }
@@ -919,6 +922,7 @@ async function handleVoteResult(
       );
 
       await updateRound(round.id, { nomination_message_id: nomMsg.message_id });
+      await queue.pinMessage(game.group_chat_id, nomMsg.message_id);
     }
   }
 }
@@ -1071,6 +1075,11 @@ gameLoopHandler.callbackQuery(/^nc:(.+)$/, async (ctx) => {
       { parse_mode: "HTML" },
     );
 
+    // Unpin nomination message before sending vote
+    if (round.nomination_message_id) {
+      await queue.unpinMessage(game.group_chat_id, round.nomination_message_id);
+    }
+
     // Send VOTE_PROMPT with keyboard to group
     const voteKb = buildVoteKeyboard(round.id);
     const voteMsg = await queue.send(
@@ -1079,8 +1088,9 @@ gameLoopHandler.callbackQuery(/^nc:(.+)$/, async (ctx) => {
       { parse_mode: "HTML", reply_markup: voteKb },
     );
 
-    // Store vote_message_id
+    // Store vote_message_id and pin
     await updateRound(round.id, { vote_message_id: voteMsg.message_id });
+    await queue.pinMessage(game.group_chat_id, voteMsg.message_id);
 
     // Edit nomination message to remove buttons
     try {
@@ -1236,6 +1246,10 @@ async function resolveVoteFromCtx(
         console.error("[game-loop] vote reveal edit failed:", err);
       }
     }
+
+    // Unpin the vote message now that voting is resolved
+    const queue = getMessageQueue();
+    await queue.unpinMessage(game.group_chat_id, round.vote_message_id);
   }
 
   // Delegate to shared vote result handler
@@ -1596,8 +1610,9 @@ async function openNominationPhase(game: Game, round: Round): Promise<void> {
     { parse_mode: "HTML", reply_markup: kb },
   );
 
-  // Store nomination_message_id
+  // Store nomination_message_id and pin
   await updateRound(round.id, { nomination_message_id: nomMsg.message_id });
+  await queue.pinMessage(game.group_chat_id, nomMsg.message_id);
 
   console.log(
     `[game-loop] Nomination phase started for game ${game.id}, Capo: ${capoName}`,
@@ -1746,6 +1761,7 @@ export async function startFirstRound(gameId: string): Promise<void> {
             await updateRound(currentRound.id, {
               nomination_message_id: nomMsg.message_id,
             });
+            await queue.pinMessage(currentGame.group_chat_id, nomMsg.message_id);
           }
         } else if (currentRound.phase === "voting") {
           // Voting deadline: resolve vote
@@ -2079,6 +2095,7 @@ export function createScheduleHandlers(bot: Bot): GameLoopScheduleHandlers {
               await updateRound(round.id, {
                 nomination_message_id: nomMsg.message_id,
               });
+              await queue.pinMessage(game.group_chat_id, nomMsg.message_id);
             }
           } else if (round.phase === "voting") {
             // Voting deadline -- resolve the vote with whatever votes are in
@@ -2274,6 +2291,7 @@ export function createScheduleHandlers(bot: Bot): GameLoopScheduleHandlers {
               await updateRound(round.id, {
                 nomination_message_id: nomMsg.message_id,
               });
+              await queue.pinMessage(game.group_chat_id, nomMsg.message_id);
             }
           }
         } catch (gameErr) {
