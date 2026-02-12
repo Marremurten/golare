@@ -13,31 +13,35 @@
 const _RULES_PAGE_ROLLER =
   "<b>🎭 Rollerna i Ligan</b>\n\n" +
   "Lyssna upp, det finns tre typer av folk i det här spelet:\n\n" +
-  "<b>Äkta</b> -- Ligans lojala medlemmar. Genomför stötar för att " +
-  "hålla verksamheten igång. Ni är familjen, bre.\n\n" +
+  "<b>Äkta</b> -- Ligans lojala medlemmar. Under stöten trycker du " +
+  "<b>Säkra</b> för att genomföra uppdraget. Ni är familjen, bre.\n\n" +
   "<b>Golare</b> -- Infiltratörer som jobbar med Aina. " +
-  "Vet vilka de andra Golare är. Saboterar stötar inifrån. " +
+  "Vet vilka de andra Golare är. Under stöten kan du trycka " +
+  "<b>Gola</b> för att sabotera -- men du kan också bluffa med Säkra. " +
   "Råttor, helt enkelt. 🐀\n\n" +
   "<b>Guzmans Högra Hand</b> -- En av de Äkta med specialförmågan " +
   '"Spaning" (kan kolla en spelares riktiga roll en gång under spelet). ' +
+  "Högra Hands Spaning är <b>garanterat sann</b>. " +
   "Måste hålla sig dold -- om Golare listar ut vem det är, " +
   "kan dom stjäla vinsten. 🔍\n\n" +
-  "<i>Ligan vs Aina. Familj vs Förrädare. Välj sida.</i>";
+  "<i>Alla Äkta (inklusive Högra Hand) har en Spaning-förmåga " +
+  "(se Förmågor-sidan). Ligan vs Aina. Familj vs Förrädare.</i>";
 
 const _RULES_PAGE_SPELGANG =
   "<b>⚙️ Spelgång</b>\n\n" +
   "Varje runda kör vi igenom fem steg, bre:\n\n" +
-  "<b>1. Capo-val (09:00)</b> -- En spelare blir Capo och " +
-  "väljer sitt team för rundan.\n\n" +
-  "<b>2. Röstning (12:00)</b> -- Gruppen röstar JA eller NEJ " +
-  "på Capos teamval. Tre NEJ i rad = automatisk fail " +
-  "(Kaos-mätaren). 💥\n\n" +
-  "<b>3. Stöten (15:00)</b> -- Teamet genomför uppdraget. " +
-  "Varje teammedlem väljer i hemlighet: Genomför eller Gola.\n\n" +
-  "<b>4. Resultat (18:00)</b> -- Rösterna avslöjas. " +
-  "Minst en Gola-röst = saboterat. Noll Gola = lyckat.\n\n" +
-  "<b>5. Diskussion (21:00)</b> -- Snacka, anklaga, ljug. " +
-  "Sen börjar nästa runda. 🔄\n\n" +
+  "<b>1. Uppdrag (09:00)</b> -- Guzman postar dagens stöt. " +
+  "En spelare utses till <b>Capo</b>.\n\n" +
+  "<b>2. Teamval (09:00–12:00)</b> -- Capo väljer sitt team. " +
+  "Deadline kl 12.\n\n" +
+  "<b>3. Röstning (12:00–15:00)</b> -- Alla röstar <b>JA</b> eller " +
+  "<b>NEJ</b> på Capos teamval. Röster avslöjas efter deadline. " +
+  "3 NEJ i rad = Kaos (auto-fail). 💥\n\n" +
+  "<b>4. Stöten (15:00–18:00)</b> -- Teamet väljer <b>Säkra</b> " +
+  "eller <b>Gola</b> i hemlighet.\n\n" +
+  "<b>5. Resultat (21:00)</b> -- Resultatet avslöjas. " +
+  "Minst en Gola = saboterat. Noll Gola = lyckat. " +
+  "Poäng delas ut. 🔄\n\n" +
   "<i>Timing kan variera -- Guzman bestämmer tempot.</i>";
 
 const _RULES_PAGE_VINST =
@@ -47,12 +51,32 @@ const _RULES_PAGE_VINST =
   "Familjen håller ihop och verksamheten rullar. ✅\n\n" +
   "<b>Aina vinner:</b> 3 saboterade stötar (minst en Gola-röst " +
   "i varje). Råttorna äter oss inifrån. 🐀\n\n" +
+  "<b>Dubbelpoäng:</b> Runda 4–5 ger <b>2 poäng</b> istället " +
+  "för 1. Comeback alltid möjligt! 💥\n\n" +
+  "<b>Kaos-mätaren:</b> 3 nekade röstningar i rad = uppdraget " +
+  "misslyckas automatiskt. Aina får en gratispoäng. 😤\n\n" +
   "<b>--- Sista Chansen ---</b>\n\n" +
   "Om Ligan vinner: Golare får <b>en chans</b> att peka ut " +
   "Guzmans Högra Hand. Rätt gissning = Aina stjäl vinsten! 😱\n\n" +
   "Om Aina vinner: De Äkta får <b>en chans</b> att peka ut " +
   "en Golare. Rätt gissning = Ligan stjäl tillbaka vinsten! 💪\n\n" +
   "<i>Inget är över förrän det är över. Spela smart till sista sekunden.</i>";
+
+const _RULES_PAGE_FORMAGOR =
+  "<b>🔧 Förmågor</b>\n\n" +
+  "Det finns grejer du kan göra utöver att rösta och köra stötar, bre:\n\n" +
+  "<b>Spaning</b> (<code>/spaning</code>) -- Alla Äkta har en per spel. " +
+  "Du får en kryptisk hint om en spelares roll (70–80% sant). " +
+  "Högra Hands Spaning är <b>garanterat sann</b>. 🔍\n\n" +
+  "<b>Övervakning</b> (<code>/spana</code>) -- Icke-teammedlemmar kan " +
+  "spana på en person i teamet under stöten. Du får en vag ledtråd " +
+  "om vad dom gjorde. 👀\n\n" +
+  "<b>Anonym Viskning</b> (<code>/viska</code>) -- Skicka ett anonymt " +
+  "meddelande via Guzman till gruppen eller en spelare. " +
+  "Ingen vet att det var du. 🤫\n\n" +
+  "<b>Dubbelpoäng</b> -- Runda 4–5 ger <b>dubbla poäng</b>. " +
+  "Comeback alltid möjligt, bre. 💥\n\n" +
+  "<i>Använd dina förmågor klokt. De kan ändra allt.</i>";
 
 export const MESSAGES = {
   /** Welcome message when user /start's the bot directly (no deep link) */
@@ -223,16 +247,21 @@ export const MESSAGES = {
   /** Rules page: Spelgång -- game flow and daily cycle */
   RULES_PAGE_SPELGANG: _RULES_PAGE_SPELGANG,
 
+  /** Rules page: Förmågor -- abilities and special actions */
+  RULES_PAGE_FORMAGOR: _RULES_PAGE_FORMAGOR,
+
   /** Rules page: Vinst -- win conditions */
   RULES_PAGE_VINST: _RULES_PAGE_VINST,
 
   /** Function to get the right rules page content */
-  RULES_PAGE: (page: "roller" | "spelgang" | "vinst"): string => {
+  RULES_PAGE: (page: "roller" | "spelgang" | "formagor" | "vinst"): string => {
     switch (page) {
       case "roller":
         return _RULES_PAGE_ROLLER;
       case "spelgang":
         return _RULES_PAGE_SPELGANG;
+      case "formagor":
+        return _RULES_PAGE_FORMAGOR;
       case "vinst":
         return _RULES_PAGE_VINST;
     }
@@ -693,6 +722,63 @@ export const MESSAGES = {
 
   /** Role reveal: finale message after all reveals */
   ROLE_REVEAL_FINALE: "Spelet är slut. Nu vet ni allt, bre. GG, familjen. 🤝",
+
+  // -------------------------------------------------------------------------
+  // Tutorial messages (Phase 6)
+  // -------------------------------------------------------------------------
+
+  /** Tutorial: intro before mission post (round 1 only) */
+  TUTORIAL_INTRO:
+    "📖 <b>TUTORIAL:</b> Yo, lyssna upp -- tutorial-läge är på, bre.\n\n" +
+    "Jag guidar er genom runda 1 steg för steg så ni fattar hur allt funkar.\n\n" +
+    "Varje runda har 5 steg:\n" +
+    "1. <b>Uppdrag</b> -- Jag postar stöten och utser en Capo\n" +
+    "2. <b>Teamval</b> -- Capo väljer sitt team\n" +
+    "3. <b>Röstning</b> -- Alla röstar JA/NEJ på teamet\n" +
+    "4. <b>Stöten</b> -- Teamet väljer Säkra eller Gola\n" +
+    "5. <b>Resultat</b> -- Jag avslöjar vad som hände\n\n" +
+    "Kör hårt, familjen. Vi lär oss tillsammans. 🔥",
+
+  /** Tutorial: before nomination keyboard */
+  TUTORIAL_NOMINATION:
+    "📖 <b>TUTORIAL:</b> Nu ska <b>Capo</b> välja sitt team, bre.\n\n" +
+    "Capo är den som bestämmer vilka som går in på stöten. " +
+    "Tryck på namnen för att toggla vem som är med, sen tryck Bekräfta.\n\n" +
+    "Team-storlek beror på antal spelare. Tänk noga -- " +
+    "vill du ha folk du litar på, eller nån du vill testa? 🤔\n\n" +
+    "Resten av er: kolla vilka Capo väljer. " +
+    "Nästa steg är att rösta om ni litar på valet.",
+
+  /** Tutorial: before vote prompt */
+  TUTORIAL_VOTING:
+    "📖 <b>TUTORIAL:</b> Dags att rösta, bre!\n\n" +
+    "Alla (inklusive Capo) röstar <b>JA</b> eller <b>NEJ</b> " +
+    "på det föreslagna teamet.\n\n" +
+    "Alla röster avslöjas efteråt -- så tänk efter.\n\n" +
+    "<b>Kaos-mätaren:</b> Om gruppen nekar 3 teamförslag i rad " +
+    "blir det KAOS och Aina tar en gratispoäng. " +
+    "Så försök komma överens, shuno. 💥",
+
+  /** Tutorial: after vote approved, before execution DMs */
+  TUTORIAL_EXECUTION:
+    "📖 <b>TUTORIAL:</b> Teamet är godkänt! Nu kommer stöten, bre.\n\n" +
+    "Teammedlemmar: kolla era DMs. Ni väljer i hemlighet:\n" +
+    "  <b>Säkra</b> -- Genomför uppdraget lojalt\n" +
+    "  <b>Gola</b> -- Sabotera uppdraget\n\n" +
+    "Ingen ser vad du väljer. Bara resultatet avslöjas.\n\n" +
+    "Alla andra: ni kan använda <code>/spana</code> för att " +
+    "övervaka en teammedlem, eller <code>/viska</code> för att " +
+    "skicka ett anonymt meddelande. Använd tiden klokt! 👀",
+
+  /** Tutorial: before result reveal */
+  TUTORIAL_REVEAL:
+    "📖 <b>TUTORIAL:</b> Alla har gjort sitt val. Dags för resultat!\n\n" +
+    "Om <b>alla</b> valde Säkra = stöten lyckas. Ligan tar poängen. ✅\n" +
+    "Om <b>minst en</b> valde Gola = stöten misslyckas. Aina tar poängen. ❌\n\n" +
+    "Först till <b>3 poäng</b> vinner. " +
+    "Runda 4–5 ger dubbelpoäng, så comeback är alltid möjligt.\n\n" +
+    "Det var runda 1! Från och med nu kör vi utan tutorial, bre. " +
+    "Lycka till, familjen. 🔥",
 
   /** Score update with double point info (rounds 4-5) */
   SCORE_UPDATE_DOUBLE: (liganScore: number, ainaScore: number, roundNumber: number, pointValue: number) =>

@@ -570,6 +570,11 @@ async function resolveExecution(
     aina_score: newAinaScore,
   });
 
+  // Tutorial: reveal explanation (round 1 only)
+  if (game.tutorial_mode && round.round_number === 1) {
+    await queue.send(game.group_chat_id, MESSAGES.TUTORIAL_REVEAL, { parse_mode: "HTML" });
+  }
+
   // Send suspense message (template -- short atmospheric pause)
   await queue.send(game.group_chat_id, MESSAGES.SUSPENSE_1, {
     parse_mode: "HTML",
@@ -852,6 +857,11 @@ async function handleVoteResult(
       { parse_mode: "HTML" },
     );
 
+    // Tutorial: execution explanation (round 1 only)
+    if (game.tutorial_mode && round.round_number === 1) {
+      await queue.send(game.group_chat_id, MESSAGES.TUTORIAL_EXECUTION, { parse_mode: "HTML" });
+    }
+
     // Send execution DMs with Sakra/Gola buttons to team members
     const updatedRound = await getRoundById(round.id);
     if (updatedRound) {
@@ -1048,6 +1058,11 @@ gameLoopHandler.callbackQuery(/^nc:(.+)$/, async (ctx) => {
 
     const capoName = displayName(capoPlayer.players);
     const queue = getMessageQueue();
+
+    // Tutorial: voting explanation (round 1 only)
+    if (game.tutorial_mode && round.round_number === 1) {
+      await queue.send(game.group_chat_id, MESSAGES.TUTORIAL_VOTING, { parse_mode: "HTML" });
+    }
 
     // Send TEAM_PROPOSED to group
     await queue.send(
@@ -1470,6 +1485,303 @@ async function getGameById(gameId: string): Promise<Game | null> {
 }
 
 // ---------------------------------------------------------------------------
+// Extracted reusable functions
+// ---------------------------------------------------------------------------
+
+/**
+ * Create a new round and post the mission narrative to the group.
+ * Used by both the 09:00 scheduler and startFirstRound.
+ */
+async function createAndPostRound(game: Game, roundNumber: number): Promise<Round> {
+  const queue = getMessageQueue();
+  const players = await getGamePlayersOrdered(game.id);
+  if (players.length === 0) {
+    throw new Error(`No players in game ${game.id}`);
+  }
+
+  const capoIndex = getCapoIndex(players.length, roundNumber, 0);
+  const capoPlayer = players[capoIndex];
+  const round = await createRound(game.id, roundNumber, capoPlayer.id);
+  await updateGame(game.id, { round: roundNumber });
+
+  // Send AI-generated mission narrative (falls back to template on failure)
+  let missionText: string;
+  try {
+    const missionPlayers = await getGamePlayersOrderedWithInfo(game.id);
+    const missionPlayerNames = missionPlayers.map((p) => displayName(p.players));
+    const missionGuzmanCtx = await getGuzmanContext(game.id);
+
+    // Fresh behavioral data for mission dynamics (non-critical, CONST-04)
+    let groupDynamics = "";
+    let groupMood = "active";
+    try {
+      const { playerNotes } = await analyzeBehavior(game.id);
+      groupMood = computeGroupMood(playerNotes);
+
+      // Build compressed dynamics string for the prompt
+      const dynamicsEntries: string[] = [];
+      for (const [name, note] of Object.entries(playerNotes)) {
+        if (note === "inaktiv") continue;
+        dynamicsEntries.push(`${name}: ${note}`);
+      }
+      groupDynamics = dynamicsEntries.join("\n");
+      // Hard-cap at 500 chars to respect CONST-02 token budget
+      if (groupDynamics.length > 500) {
+        groupDynamics = groupDynamics.slice(0, 497) + "...";
+      }
+    } catch (err) {
+      console.warn(
+        "[game-loop] Fresh behavioral analysis for mission failed, using stale data:",
+        err instanceof Error ? err.message : err,
+      );
+      // Fall back to empty dynamics (CONST-04) -- mission still generates fine
+    }
+
+    missionText = await generateMissionNarrative(
+      roundNumber,
+      missionGuzmanCtx,
+      missionPlayerNames,
+      groupDynamics,
+      groupMood,
+    );
+  } catch (aiErr) {
+    console.warn("[game-loop] AI mission narrative failed, using template:", aiErr);
+    missionText = MESSAGES.MISSION_POST(roundNumber);
+  }
+
+  // Tutorial: intro message before mission (round 1 only)
+  if (game.tutorial_mode && roundNumber === 1) {
+    await queue.send(game.group_chat_id, MESSAGES.TUTORIAL_INTRO, { parse_mode: "HTML" });
+  }
+
+  await queue.send(game.group_chat_id, missionText, { parse_mode: "HTML" });
+
+  console.log(
+    `[game-loop] Mission posted for game ${game.id}, round ${roundNumber}`,
+  );
+
+  return round;
+}
+
+/**
+ * Open the nomination phase for a round: transition phase, send keyboard.
+ * Used by both the 12:00 scheduler and startFirstRound.
+ */
+async function openNominationPhase(game: Game, round: Round): Promise<void> {
+  const queue = getMessageQueue();
+
+  // Transition to nomination phase
+  const newPhase = nextRoundPhase("mission_posted", "schedule_nomination");
+  await updateRound(round.id, { phase: newPhase });
+
+  // Get players and Capo info
+  const players = await getGamePlayersOrderedWithInfo(game.id);
+  const capoPlayer = players.find((p) => p.id === round.capo_player_id);
+  if (!capoPlayer) return;
+
+  const capoName = displayName(capoPlayer.players);
+  const teamSize = game.team_size ?? getTeamSize(players.length);
+
+  // Tutorial: nomination explanation (round 1 only)
+  if (game.tutorial_mode && round.round_number === 1) {
+    await queue.send(game.group_chat_id, MESSAGES.TUTORIAL_NOMINATION, { parse_mode: "HTML" });
+  }
+
+  // Build and send nomination keyboard
+  const kb = buildNominationKeyboard(round.id, players, new Set(), teamSize);
+
+  const nomMsg = await queue.send(
+    game.group_chat_id,
+    MESSAGES.NOMINATION_PROMPT(capoName, teamSize),
+    { parse_mode: "HTML", reply_markup: kb },
+  );
+
+  // Store nomination_message_id
+  await updateRound(round.id, { nomination_message_id: nomMsg.message_id });
+
+  console.log(
+    `[game-loop] Nomination phase started for game ${game.id}, Capo: ${capoName}`,
+  );
+}
+
+/**
+ * Auto-start round 1 immediately when a game starts.
+ * Creates the round, posts mission narrative, opens nomination,
+ * and schedules compressed deadlines (+1.5h reminder, +3h deadline).
+ */
+export async function startFirstRound(gameId: string): Promise<void> {
+  try {
+    const game = await getGameById(gameId);
+    if (!game || game.state !== "active") return;
+
+    // 1. Create round 1 and post mission narrative
+    const round = await createAndPostRound(game, 1);
+
+    // 2. Open nomination phase immediately
+    await openNominationPhase(game, round);
+
+    // 3. Schedule compressed deadlines via setTimeout
+    const NINETY_MINUTES = 90 * 60 * 1000;
+    const THREE_HOURS = 3 * 60 * 60 * 1000;
+
+    // +1.5h: Nomination reminder (if still in nomination phase)
+    setTimeout(async () => {
+      try {
+        const currentRound = await getCurrentRound(gameId);
+        if (!currentRound || currentRound.id !== round.id) return;
+        if (currentRound.phase !== "nomination") return;
+
+        const queue = getMessageQueue();
+        const players = await getGamePlayersOrderedWithInfo(gameId);
+        const capoPlayer = players.find(
+          (p) => p.id === currentRound.capo_player_id,
+        );
+        if (!capoPlayer) return;
+
+        const capoName = displayName(capoPlayer.players);
+
+        await queue.send(
+          game.group_chat_id,
+          MESSAGES.NOMINATION_REMINDER(capoName),
+          { parse_mode: "HTML" },
+        );
+
+        await queue
+          .send(
+            capoPlayer.players.dm_chat_id,
+            MESSAGES.NOMINATION_REMINDER_DM(capoName),
+            { parse_mode: "HTML" },
+          )
+          .catch((err) => {
+            console.error(
+              `[game-loop] Failed to send nomination reminder DM to ${capoName}:`,
+              err,
+            );
+          });
+
+        console.log(
+          `[game-loop] First-round nomination reminder sent for game ${gameId}`,
+        );
+      } catch (err) {
+        console.error(
+          `[game-loop] First-round nomination reminder failed for game ${gameId}:`,
+          err,
+        );
+      }
+    }, NINETY_MINUTES);
+
+    // +3h: Nomination/voting deadline (reuses per-game logic from onVotingDeadline)
+    setTimeout(async () => {
+      try {
+        const currentRound = await getCurrentRound(gameId);
+        if (!currentRound || currentRound.id !== round.id) return;
+
+        const currentGame = await getGameById(gameId);
+        if (!currentGame || currentGame.state !== "active") return;
+
+        if (currentRound.phase === "nomination") {
+          // Nomination timeout: auto-fail + rotate Capo
+          const players = await getGamePlayersOrderedWithInfo(gameId);
+          const oldCapo = players.find(
+            (p) => p.id === currentRound.capo_player_id,
+          );
+          const oldCapoName = oldCapo
+            ? displayName(oldCapo.players)
+            : "Okänd";
+
+          const newFailedVotes =
+            currentRound.consecutive_failed_votes + 1;
+          const queue = getMessageQueue();
+
+          if (newFailedVotes >= 3) {
+            await updateRound(currentRound.id, {
+              consecutive_failed_votes: newFailedVotes,
+            });
+            await handleKaosFail(currentGame, {
+              ...currentRound,
+              consecutive_failed_votes: newFailedVotes,
+            });
+          } else {
+            const { newCapoName } = await rotateCapo(
+              currentRound,
+              players,
+              newFailedVotes,
+            );
+
+            await queue.send(
+              currentGame.group_chat_id,
+              MESSAGES.NOMINATION_TIMEOUT(oldCapoName, newCapoName),
+              { parse_mode: "HTML" },
+            );
+
+            if (newFailedVotes === 1) {
+              await queue.send(
+                currentGame.group_chat_id,
+                MESSAGES.KAOS_WARNING_1,
+                { parse_mode: "HTML" },
+              );
+            } else if (newFailedVotes === 2) {
+              await queue.send(
+                currentGame.group_chat_id,
+                MESSAGES.KAOS_WARNING_2,
+                { parse_mode: "HTML" },
+              );
+            }
+
+            // Send new nomination prompt
+            const teamSize =
+              currentGame.team_size ?? getTeamSize(players.length);
+            const nominationKb = buildNominationKeyboard(
+              currentRound.id,
+              players,
+              new Set(),
+              teamSize,
+            );
+            const nomMsg = await queue.send(
+              currentGame.group_chat_id,
+              MESSAGES.NOMINATION_PROMPT(newCapoName, teamSize),
+              { parse_mode: "HTML", reply_markup: nominationKb },
+            );
+
+            await updateRound(currentRound.id, {
+              nomination_message_id: nomMsg.message_id,
+            });
+          }
+        } else if (currentRound.phase === "voting") {
+          // Voting deadline: resolve vote
+          if (botRef) {
+            const players = await getGamePlayersOrderedWithInfo(gameId);
+            await resolveVote(
+              botRef,
+              currentGame,
+              currentRound,
+              players,
+            );
+          }
+        }
+        // Otherwise phase already advanced (early resolution) -- no-op
+
+        console.log(
+          `[game-loop] First-round 3h deadline processed for game ${gameId}`,
+        );
+      } catch (err) {
+        console.error(
+          `[game-loop] First-round 3h deadline failed for game ${gameId}:`,
+          err,
+        );
+      }
+    }, THREE_HOURS);
+
+    console.log(`[game-loop] First round auto-started for game ${gameId}`);
+  } catch (err) {
+    console.error(
+      `[game-loop] startFirstRound failed for game ${gameId}:`,
+      err,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Scheduler handler factory
 // ---------------------------------------------------------------------------
 
@@ -1498,17 +1810,10 @@ export function createScheduleHandlers(bot: Bot): GameLoopScheduleHandlers {
       for (const game of games) {
         try {
           const currentRound = await getCurrentRound(game.id);
-          let round: Round;
 
           if (!currentRound) {
             // First round -- create round 1
-            const players = await getGamePlayersOrdered(game.id);
-            if (players.length === 0) continue;
-
-            const capoIndex = getCapoIndex(players.length, 1, 0);
-            const capoPlayer = players[capoIndex];
-            round = await createRound(game.id, 1, capoPlayer.id);
-            await updateGame(game.id, { round: 1 });
+            await createAndPostRound(game, 1);
           } else if (currentRound.phase === "reveal") {
             // Previous round complete -- create next round
             const nextRoundNum = currentRound.round_number + 1;
@@ -1518,14 +1823,7 @@ export function createScheduleHandlers(bot: Bot): GameLoopScheduleHandlers {
               );
               continue;
             }
-
-            const players = await getGamePlayersOrdered(game.id);
-            if (players.length === 0) continue;
-
-            const capoIndex = getCapoIndex(players.length, nextRoundNum, 0);
-            const capoPlayer = players[capoIndex];
-            round = await createRound(game.id, nextRoundNum, capoPlayer.id);
-            await updateGame(game.id, { round: nextRoundNum });
+            await createAndPostRound(game, nextRoundNum);
           } else {
             // Round already in progress -- skip
             console.log(
@@ -1533,61 +1831,6 @@ export function createScheduleHandlers(bot: Bot): GameLoopScheduleHandlers {
             );
             continue;
           }
-
-          // Send AI-generated mission narrative (falls back to template on failure)
-          let missionText: string;
-          try {
-            const missionPlayers = await getGamePlayersOrderedWithInfo(game.id);
-            const missionPlayerNames = missionPlayers.map((p) => displayName(p.players));
-            const missionGuzmanCtx = await getGuzmanContext(game.id);
-
-            // Fresh behavioral data for mission dynamics (non-critical, CONST-04)
-            let groupDynamics = "";
-            let groupMood = "active";
-            try {
-              const { playerNotes } = await analyzeBehavior(game.id);
-              groupMood = computeGroupMood(playerNotes);
-
-              // Build compressed dynamics string for the prompt
-              const dynamicsEntries: string[] = [];
-              for (const [name, note] of Object.entries(playerNotes)) {
-                if (note === "inaktiv") continue;
-                dynamicsEntries.push(`${name}: ${note}`);
-              }
-              groupDynamics = dynamicsEntries.join("\n");
-              // Hard-cap at 500 chars to respect CONST-02 token budget
-              if (groupDynamics.length > 500) {
-                groupDynamics = groupDynamics.slice(0, 497) + "...";
-              }
-            } catch (err) {
-              console.warn(
-                "[game-loop] Fresh behavioral analysis for mission failed, using stale data:",
-                err instanceof Error ? err.message : err,
-              );
-              // Fall back to empty dynamics (CONST-04) -- mission still generates fine
-            }
-
-            missionText = await generateMissionNarrative(
-              round.round_number,
-              missionGuzmanCtx,
-              missionPlayerNames,
-              groupDynamics,
-              groupMood,
-            );
-          } catch (aiErr) {
-            console.warn("[game-loop] AI mission narrative failed, using template:", aiErr);
-            missionText = MESSAGES.MISSION_POST(round.round_number);
-          }
-
-          await queue.send(
-            game.group_chat_id,
-            missionText,
-            { parse_mode: "HTML" },
-          );
-
-          console.log(
-            `[game-loop] Mission posted for game ${game.id}, round ${round.round_number}`,
-          );
         } catch (gameErr) {
           console.error(
             `[game-loop] onMissionPost failed for game ${game.id}:`,
@@ -1659,40 +1902,7 @@ export function createScheduleHandlers(bot: Bot): GameLoopScheduleHandlers {
           const round = await getCurrentRound(game.id);
           if (!round || round.phase !== "mission_posted") continue;
 
-          // Transition to nomination phase
-          const newPhase = nextRoundPhase("mission_posted", "schedule_nomination");
-          await updateRound(round.id, { phase: newPhase });
-
-          // Get players and Capo info
-          const players = await getGamePlayersOrderedWithInfo(game.id);
-          const capoPlayer = players.find((p) => p.id === round.capo_player_id);
-          if (!capoPlayer) continue;
-
-          const capoName = displayName(capoPlayer.players);
-          const teamSize = game.team_size ?? getTeamSize(players.length);
-
-          // Build and send nomination keyboard
-          const kb = buildNominationKeyboard(
-            round.id,
-            players,
-            new Set(),
-            teamSize,
-          );
-
-          const nomMsg = await queue.send(
-            game.group_chat_id,
-            MESSAGES.NOMINATION_PROMPT(capoName, teamSize),
-            { parse_mode: "HTML", reply_markup: kb },
-          );
-
-          // Store nomination_message_id
-          await updateRound(round.id, {
-            nomination_message_id: nomMsg.message_id,
-          });
-
-          console.log(
-            `[game-loop] Nomination phase started for game ${game.id}, Capo: ${capoName}`,
-          );
+          await openNominationPhase(game, round);
         } catch (gameErr) {
           console.error(
             `[game-loop] onNominationDeadline failed for game ${game.id}:`,

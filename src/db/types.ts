@@ -39,6 +39,7 @@ export type Game = {
   aina_score: number;
   team_size: number | null;
   guzman_context: Record<string, unknown>;
+  tutorial_mode: boolean;
   created_at: string;
   updated_at: string;
 };

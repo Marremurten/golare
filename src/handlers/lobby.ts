@@ -18,6 +18,7 @@ import { getRandomError } from "../lib/errors.js";
 import { getMessageQueue } from "../queue/message-queue.js";
 import { assignRoles, ROLE_BALANCING } from "../lib/roles.js";
 import { invalidateGameCache } from "../lib/message-capture.js";
+import { startFirstRound } from "./game-loop.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -67,13 +68,17 @@ function buildLobbyKeyboard(
   gameId: string,
   playerCount: number,
   minPlayers: number,
+  tutorialMode: boolean,
 ): InlineKeyboard {
   const kb = new InlineKeyboard()
     .text("Jag är med! 🤝", `join:${gameId}`)
     .text("Hoppa av 👋", `leave:${gameId}`);
 
   if (playerCount >= minPlayers) {
-    kb.row().text("Kör igång! 🔥", `start:${gameId}`);
+    const tutorialLabel = tutorialMode ? "Tutorial ✅ 📖" : "Tutorial 📖";
+    kb.row()
+      .text(tutorialLabel, `tutorial:${gameId}`)
+      .text("Kör igång! 🔥", `start:${gameId}`);
   }
 
   return kb;
@@ -157,7 +162,7 @@ lobbyHandler
       const headerText = MESSAGES.LOBBY_CREATED(adminName);
       const lobbyText = buildLobbyText([], MAX_PLAYERS);
       const fullText = `${headerText}\n\n${lobbyText}`;
-      const keyboard = buildLobbyKeyboard(game.id, 0, MIN_PLAYERS);
+      const keyboard = buildLobbyKeyboard(game.id, 0, MIN_PLAYERS, false);
 
       // 5. Send via message queue
       const queue = getMessageQueue();
@@ -238,6 +243,7 @@ lobbyHandler.callbackQuery(/^join:(.+)$/, async (ctx) => {
       gameId,
       updatedPlayers.length,
       MIN_PLAYERS,
+      game.tutorial_mode ?? false,
     );
 
     // 7. Edit lobby message
@@ -294,6 +300,7 @@ lobbyHandler.callbackQuery(/^leave:(.+)$/, async (ctx) => {
       gameId,
       updatedPlayers.length,
       MIN_PLAYERS,
+      game.tutorial_mode ?? false,
     );
 
     try {
@@ -306,6 +313,67 @@ lobbyHandler.callbackQuery(/^leave:(.+)$/, async (ctx) => {
     }
   } catch (error) {
     console.error("[lobby] leave callback failed:", error);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Tutorial toggle callback: tutorial:{gameId}
+// ---------------------------------------------------------------------------
+
+lobbyHandler.callbackQuery(/^tutorial:(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+
+  if (!ctx.from) return;
+
+  try {
+    const gameId = ctx.match[1];
+
+    // 1. Get game and verify lobby state
+    const game = await getGameById(gameId);
+    if (!game || game.state !== "lobby") return;
+
+    // 2. Only game creator can toggle tutorial mode
+    if (ctx.from.id !== game.admin_user_id) {
+      await ctx.answerCallbackQuery({
+        text: "Bara den som skapade spelet kan ändra tutorial-läge, bre.",
+        show_alert: true,
+      });
+      return;
+    }
+
+    // 3. Toggle tutorial_mode
+    const newTutorialMode = !game.tutorial_mode;
+    await updateGame(gameId, { tutorial_mode: newTutorialMode });
+
+    // 4. Rebuild lobby message with updated keyboard
+    const updatedPlayers = await getGamePlayersWithInfo(gameId);
+    const playerInfos = updatedPlayers.map((gp) => gp.players);
+
+    const adminPlayer = await getPlayerByTelegramId(game.admin_user_id);
+    const adminName =
+      adminPlayer?.first_name || adminPlayer?.username || "Okänd admin";
+
+    const newText =
+      MESSAGES.LOBBY_CREATED(adminName) +
+      "\n\n" +
+      buildLobbyText(playerInfos, MAX_PLAYERS);
+    const newKeyboard = buildLobbyKeyboard(
+      gameId,
+      updatedPlayers.length,
+      MIN_PLAYERS,
+      newTutorialMode,
+    );
+
+    try {
+      await ctx.editMessageText(newText, {
+        reply_markup: newKeyboard,
+        parse_mode: "HTML",
+      });
+    } catch (editErr) {
+      if (!isMessageNotModifiedError(editErr)) throw editErr;
+    }
+  } catch (error) {
+    console.error("[lobby] tutorial toggle failed:", error);
   }
 });
 
@@ -440,6 +508,11 @@ lobbyHandler.callbackQuery(/^start:(.+)$/, async (ctx) => {
     // 10. Send dramatic game start monologue to group
     await queue.send(game.group_chat_id, MESSAGES.GAME_START_MONOLOGUE, {
       parse_mode: "HTML",
+    });
+
+    // 11. Auto-start round 1 immediately (compressed schedule)
+    startFirstRound(gameId).catch((err) => {
+      console.error(`[lobby] startFirstRound failed for game ${gameId}:`, err);
     });
 
     console.log(

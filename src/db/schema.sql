@@ -261,3 +261,8 @@ CREATE TRIGGER trg_prune_player_messages
   AFTER INSERT ON player_messages
   FOR EACH ROW
   EXECUTE FUNCTION prune_player_messages();
+
+-- ---------------------------------------------------------------------------
+-- Tutorial mode flag for games (Phase 6)
+-- ---------------------------------------------------------------------------
+ALTER TABLE games ADD COLUMN IF NOT EXISTS tutorial_mode BOOLEAN NOT NULL DEFAULT FALSE;

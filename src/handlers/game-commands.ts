@@ -81,13 +81,14 @@ gameCommandsHandler
 // Helpers
 // ---------------------------------------------------------------------------
 
-type RulesPage = "roller" | "spelgang" | "vinst";
+type RulesPage = "roller" | "spelgang" | "formagor" | "vinst";
 
-const RULES_PAGES: RulesPage[] = ["roller", "spelgang", "vinst"];
+const RULES_PAGES: RulesPage[] = ["roller", "spelgang", "formagor", "vinst"];
 
 const RULES_PAGE_LABELS: Record<RulesPage, string> = {
   roller: "Roller",
   spelgang: "Spelgång",
+  formagor: "Förmågor",
   vinst: "Vinst",
 };
 
