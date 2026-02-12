@@ -120,9 +120,10 @@ export const MESSAGES = {
   // -------------------------------------------------------------------------
 
   /** Guzman announces a new game lobby */
-  LOBBY_CREATED: (adminName: string) =>
+  LOBBY_CREATED: (adminName: string, botUsername: string) =>
     `Yo, ${adminName} vill starta en stöt! 🔥\n` +
-    "Vem är med? Tryck 'Jag är med!' bre.",
+    "Vem är med? Tryck 'Jag är med!' bre.\n\n" +
+    `⚡ Ny här? Starta mig först: https://t.me/${botUsername}?start=reg`,
 
   /** Dynamic lobby status with player count and names */
   LOBBY_TEXT: (players: string[], maxPlayers: number) => {

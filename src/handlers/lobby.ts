@@ -19,6 +19,7 @@ import { getMessageQueue } from "../queue/message-queue.js";
 import { assignRoles, ROLE_BALANCING } from "../lib/roles.js";
 import { invalidateGameCache } from "../lib/message-capture.js";
 import { startFirstRound } from "./game-loop.js";
+import { callOutPlayer } from "./dm-flow.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -159,7 +160,7 @@ lobbyHandler
       // 4. Build initial lobby message (0 players)
       const adminName =
         ctx.from.first_name || ctx.from.username || "Okänd admin";
-      const headerText = MESSAGES.LOBBY_CREATED(adminName);
+      const headerText = MESSAGES.LOBBY_CREATED(adminName, ctx.me.username);
       const lobbyText = buildLobbyText([], MAX_PLAYERS);
       const fullText = `${headerText}\n\n${lobbyText}`;
       const keyboard = buildLobbyKeyboard(game.id, 0, MIN_PLAYERS, false);
@@ -206,6 +207,15 @@ lobbyHandler.callbackQuery(/^join:(.+)$/, async (ctx) => {
         text: MESSAGES.LOBBY_NOT_REGISTERED,
         show_alert: true,
       });
+      // Post a clickable deep link in the group so the player can register
+      const chatId = ctx.chat?.id;
+      if (chatId) {
+        await callOutPlayer(chatId, {
+          telegramUserId: ctx.from.id,
+          firstName: ctx.from.first_name,
+          username: ctx.from.username,
+        }, ctx.me.username);
+      }
       return;
     }
 
@@ -236,7 +246,7 @@ lobbyHandler.callbackQuery(/^join:(.+)$/, async (ctx) => {
       adminPlayer?.first_name || adminPlayer?.username || "Okänd admin";
 
     const newText =
-      MESSAGES.LOBBY_CREATED(adminName) +
+      MESSAGES.LOBBY_CREATED(adminName, ctx.me.username) +
       "\n\n" +
       buildLobbyText(playerInfos, MAX_PLAYERS);
     const newKeyboard = buildLobbyKeyboard(
@@ -293,7 +303,7 @@ lobbyHandler.callbackQuery(/^leave:(.+)$/, async (ctx) => {
       adminPlayer?.first_name || adminPlayer?.username || "Okänd admin";
 
     const newText =
-      MESSAGES.LOBBY_CREATED(adminName) +
+      MESSAGES.LOBBY_CREATED(adminName, ctx.me.username) +
       "\n\n" +
       buildLobbyText(playerInfos, MAX_PLAYERS);
     const newKeyboard = buildLobbyKeyboard(
@@ -354,7 +364,7 @@ lobbyHandler.callbackQuery(/^tutorial:(.+)$/, async (ctx) => {
       adminPlayer?.first_name || adminPlayer?.username || "Okänd admin";
 
     const newText =
-      MESSAGES.LOBBY_CREATED(adminName) +
+      MESSAGES.LOBBY_CREATED(adminName, ctx.me.username) +
       "\n\n" +
       buildLobbyText(playerInfos, MAX_PLAYERS);
     const newKeyboard = buildLobbyKeyboard(
