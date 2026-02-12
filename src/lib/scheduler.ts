@@ -15,7 +15,8 @@
  */
 
 import { Cron } from "croner";
-import { getAllActiveGames, getCurrentRound } from "../db/client.js";
+import { getAllActiveGames, getCurrentRound, getSistaChansen } from "../db/client.js";
+import { checkWinCondition } from "./game-state.js";
 import type { RoundPhase } from "../db/types.js";
 
 const TIMEZONE = "Europe/Stockholm";
@@ -36,6 +37,8 @@ export type ScheduleHandlers = {
   onWhisperAfternoon: () => Promise<void>;
   onWhisperEvening: () => Promise<void>;
   onGapFill: () => Promise<void>;
+  /** Recover Sista Chansen games stuck after restart (optional). */
+  onSistaChansensRecovery?: () => Promise<void>;
 };
 
 // ---------------------------------------------------------------------------
@@ -181,8 +184,41 @@ export async function recoverMissedEvents(
       }
     }
 
+    // Recover Sista Chansen games stuck after restart
+    if (handlers.onSistaChansensRecovery) {
+      try {
+        await handlers.onSistaChansensRecovery();
+      } catch (scErr) {
+        console.error("[scheduler] Sista Chansen recovery error:", scErr);
+      }
+    }
+
     console.log("[scheduler] Recovery check complete");
   } catch (err) {
     console.error("[scheduler] Recovery error:", err);
   }
+}
+
+/**
+ * Find active games stuck in Sista Chansen state (win condition met,
+ * game still active, no resolved guess in sista_chansen table).
+ * Returns game IDs that need recovery.
+ */
+export async function findSistaChansensGames(): Promise<string[]> {
+  const games = await getAllActiveGames();
+  const stuckGameIds: string[] = [];
+
+  for (const game of games) {
+    const winner = checkWinCondition(game.ligan_score, game.aina_score);
+    if (!winner) continue; // No win condition -- not in Sista Chansen
+
+    // Game has a winner but is still active -- check if guess was already made
+    const existing = await getSistaChansen(game.id);
+    if (!existing) {
+      // No guess recorded -- this game is stuck in Sista Chansen
+      stuckGameIds.push(game.id);
+    }
+  }
+
+  return stuckGameIds;
 }

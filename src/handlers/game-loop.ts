@@ -69,6 +69,7 @@ import { analyzeBehavior, computeGroupMood } from "../lib/behavioral-analysis.js
 import { config } from "../config.js";
 import { invalidateGameCache } from "../lib/message-capture.js";
 import type { ScheduleHandlers } from "../lib/scheduler.js";
+import { findSistaChansensGames } from "../lib/scheduler.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -77,21 +78,12 @@ import type { ScheduleHandlers } from "../lib/scheduler.js";
 /** Player with joined player info (name, dm_chat_id) */
 type OrderedPlayerWithInfo = GamePlayer & { players: Player };
 
-/** Tracks DM message IDs for Sista Chansen guessers so buttons can be removed */
-type GuesserDMInfo = { playerId: string; messageId: number; chatId: number };
-
 // ---------------------------------------------------------------------------
-// In-memory state for Sista Chansen
+// In-memory state for Sista Chansen (timeout refs only -- rest derived from DB)
 // ---------------------------------------------------------------------------
-
-/** DM message IDs per game, used to remove buttons from all guessers after first guess */
-const sistaChansensMessages = new Map<string, GuesserDMInfo[]>();
 
 /** Timeout references per game, cleared when a guess arrives */
 const sistaChansensTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
-
-/** Candidate lists per game (ordered), used to resolve candidateIndex from callback */
-const sistaChangensCandidates = new Map<string, OrderedPlayerWithInfo[]>();
 
 // ---------------------------------------------------------------------------
 // Bot reference (needed for Sista Chansen from resolveExecution context)
@@ -102,6 +94,38 @@ let botRef: Bot | null = null;
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/** Computed Sista Chansen state derived entirely from DB (crash-safe). */
+type SistaChansenState = {
+  guessingSide: GuessingSide;
+  guessers: OrderedPlayerWithInfo[];
+  candidates: OrderedPlayerWithInfo[];
+};
+
+/**
+ * Compute Sista Chansen guessers and candidates from DB.
+ * Deterministic: uses getGamePlayersOrderedWithInfo (join_order).
+ * Returns null if game scores don't indicate a win condition.
+ */
+async function computeSistaChansenState(
+  gameId: string,
+  game: Game,
+): Promise<SistaChansenState | null> {
+  const guessingSide = getSistaChansenSide(game.ligan_score, game.aina_score) as GuessingSide | null;
+  if (!guessingSide) return null;
+
+  const players = await getGamePlayersOrderedWithInfo(gameId);
+
+  const guessers = players.filter((p) => {
+    if (guessingSide === "golare") return p.role === "golare";
+    return p.role === "akta";
+  });
+
+  const guesserIdSet = new Set(guessers.map((g) => g.id));
+  const candidates = players.filter((p) => !guesserIdSet.has(p.id));
+
+  return { guessingSide, guessers, candidates };
+}
 
 /**
  * Promise-based sleep helper for dramatic delays.
@@ -266,9 +290,16 @@ async function initiateSistaChansen(
   ainaScore: number,
 ): Promise<void> {
   const queue = getMessageQueue();
-  const guessingSide = getSistaChansenSide(liganScore, ainaScore) as GuessingSide;
 
-  const players = await getGamePlayersOrderedWithInfo(game.id);
+  // Compute guessers + candidates from DB (crash-safe, no in-memory state)
+  const scState = await computeSistaChansenState(game.id, {
+    ...game,
+    ligan_score: liganScore,
+    aina_score: ainaScore,
+  });
+  if (!scState) return;
+
+  const { guessingSide, guessers, candidates } = scState;
 
   // 1. GROUP ANNOUNCEMENT: Tell guessing team to discuss in group first
   await queue.send(
@@ -277,13 +308,6 @@ async function initiateSistaChansen(
     { parse_mode: "HTML" },
   );
 
-  // 2. Determine guessing team members
-  const guessers = players.filter((p) => {
-    if (guessingSide === "golare") return p.role === "golare";
-    // akta side: all akta players, NOT hogra_hand
-    return p.role === "akta";
-  });
-
   // DEV_MODE / 1-player: no one qualifies as guesser -- skip to final reveal
   if (guessers.length === 0) {
     console.log(`[game-loop] No guessers for Sista Chansen in game ${game.id}, skipping to final reveal`);
@@ -291,41 +315,47 @@ async function initiateSistaChansen(
     return;
   }
 
-  // 3. Determine candidate targets: all players minus the guessers
-  const guesserIdSet = new Set(guessers.map((g) => g.id));
-  const candidates = players.filter((p) => !guesserIdSet.has(p.id));
+  // 2. Send DMs with candidate buttons to guessers
+  await sendSistaChansenDMs(queue, game.id, guessingSide, guessers, candidates);
 
-  // Store candidates in memory for callback resolution
-  sistaChangensCandidates.set(game.id, candidates);
+  // 3. Set 2-hour timeout
+  setSistaChansenTimeout(bot, game, winner);
 
-  // 4. Build inline keyboard with candidate names
+  console.log(
+    `[game-loop] Sista Chansen initiated for game ${game.id} (guessing_side=${guessingSide})`,
+  );
+}
+
+/**
+ * Build and send Sista Chansen DMs with candidate buttons to all guessers.
+ * No message IDs are tracked -- stale button clicks are handled by DB unique constraint.
+ */
+async function sendSistaChansenDMs(
+  queue: ReturnType<typeof getMessageQueue>,
+  gameId: string,
+  guessingSide: GuessingSide,
+  guessers: OrderedPlayerWithInfo[],
+  candidates: OrderedPlayerWithInfo[],
+): Promise<void> {
   const kb = new InlineKeyboard();
   for (let i = 0; i < candidates.length; i++) {
     const name = displayName(candidates[i].players);
-    kb.text(name, `sc:${game.id}:${i}`).row();
+    kb.text(name, `sc:${gameId}:${i}`).row();
   }
 
-  // 5. Determine target description for DM
   const targetDescription = guessingSide === "golare"
     ? "Guzmans Högra Hand"
     : "en Golare";
 
   const candidateNames = candidates.map((c) => displayName(c.players));
 
-  // 6. Send DMs to each guesser and track message IDs
-  const guesserDMs: GuesserDMInfo[] = [];
   const dmPromises = guessers.map(async (guesser) => {
     try {
-      const msg = await queue.send(
+      await queue.send(
         guesser.players.dm_chat_id,
         MESSAGES.SISTA_CHANSEN_DM(targetDescription, candidateNames),
         { parse_mode: "HTML", reply_markup: kb },
       );
-      guesserDMs.push({
-        playerId: guesser.id,
-        messageId: msg.message_id,
-        chatId: guesser.players.dm_chat_id,
-      });
     } catch (err) {
       console.error(
         `[game-loop] Failed to send Sista Chansen DM to ${displayName(guesser.players)}:`,
@@ -335,10 +365,21 @@ async function initiateSistaChansen(
   });
 
   await Promise.all(dmPromises);
-  sistaChansensMessages.set(game.id, guesserDMs);
+}
 
-  // 7. Set 2-hour timeout
+/**
+ * Set (or reset) the 2-hour Sista Chansen timeout for a game.
+ * @param durationMs  Override duration (used by recovery to set remaining time).
+ */
+function setSistaChansenTimeout(
+  bot: Bot,
+  game: Game,
+  winner: "ligan" | "aina",
+  durationMs?: number,
+): void {
   const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+  const ms = durationMs ?? TWO_HOURS_MS;
+
   const timeout = setTimeout(async () => {
     try {
       // Check if guess was already made
@@ -347,49 +388,18 @@ async function initiateSistaChansen(
 
       console.log(`[game-loop] Sista Chansen timeout for game ${game.id}`);
 
-      // Remove buttons from all guessers' DMs
-      await removeGuesserButtons(bot, game.id);
-
       // Proceed to final reveal with no guess (timeout)
       await performFinalReveal(bot, game, game.group_chat_id, null, winner);
     } catch (err) {
       console.error(`[game-loop] Sista Chansen timeout handler failed for game ${game.id}:`, err);
     }
-  }, TWO_HOURS_MS);
+  }, ms);
 
   sistaChansensTimeouts.set(game.id, timeout);
-
-  console.log(
-    `[game-loop] Sista Chansen initiated for game ${game.id} (guessing_side=${guessingSide})`,
-  );
 }
 
 /**
- * Remove inline keyboard buttons from all guessers' DMs for a game.
- */
-async function removeGuesserButtons(bot: Bot, gameId: string): Promise<void> {
-  const dmInfos = sistaChansensMessages.get(gameId);
-  if (!dmInfos) return;
-
-  const editPromises = dmInfos.map((info) =>
-    bot.api.editMessageReplyMarkup(info.chatId, info.messageId, {
-      reply_markup: { inline_keyboard: [] },
-    }).catch((err) => {
-      if (!isMessageNotModifiedError(err)) {
-        console.error(
-          `[game-loop] Failed to remove Sista Chansen buttons for player ${info.playerId}:`,
-          err,
-        );
-      }
-    }),
-  );
-
-  await Promise.all(editPromises);
-  sistaChansensMessages.delete(gameId);
-}
-
-/**
- * Clean up in-memory Sista Chansen state for a game.
+ * Clean up in-memory Sista Chansen timeout for a game.
  */
 function cleanupSistaChansen(gameId: string): void {
   const timeout = sistaChansensTimeouts.get(gameId);
@@ -397,8 +407,6 @@ function cleanupSistaChansen(gameId: string): void {
     clearTimeout(timeout);
     sistaChansensTimeouts.delete(gameId);
   }
-  sistaChansensMessages.delete(gameId);
-  sistaChangensCandidates.delete(gameId);
 }
 
 // ---------------------------------------------------------------------------
@@ -1375,21 +1383,15 @@ gameLoopHandler.callbackQuery(/^sc:(.+):(\d+)$/, async (ctx) => {
       return;
     }
 
-    // Resolve candidate from in-memory list
-    const candidates = sistaChangensCandidates.get(gameId);
-    if (!candidates || candidateIndex < 0 || candidateIndex >= candidates.length) {
+    // Recompute candidates from DB (crash-safe -- no in-memory dependency)
+    const scState = await computeSistaChansenState(gameId, game);
+    if (!scState || candidateIndex < 0 || candidateIndex >= scState.candidates.length) {
       await ctx.answerCallbackQuery({ text: "Ogiltigt val, bre." });
       return;
     }
 
+    const { guessingSide, candidates } = scState;
     const targetPlayer = candidates[candidateIndex];
-
-    // Determine guessing side
-    const guessingSide = getSistaChansenSide(game.ligan_score, game.aina_score);
-    if (!guessingSide) {
-      await ctx.answerCallbackQuery({ text: "Något gick fel, bre." });
-      return;
-    }
 
     // ATOMIC FIRST-GUESS-WINS: try to create the sista_chansen record
     let sistaChansen: SistaChansen;
@@ -1447,11 +1449,6 @@ gameLoopHandler.callbackQuery(/^sc:(.+):(\d+)$/, async (ctx) => {
       if (!isMessageNotModifiedError(editErr)) {
         console.error("[game-loop] sista chansen DM edit failed:", editErr);
       }
-    }
-
-    // Remove buttons from ALL other guessers' DMs
-    if (botRef) {
-      await removeGuesserButtons(botRef, gameId);
     }
 
     // Clear the 2-hour timeout
@@ -2364,6 +2361,74 @@ export function createScheduleHandlers(bot: Bot): GameLoopScheduleHandlers {
     }
   };
 
+  // -------------------------------------------------------------------------
+  // Sista Chansen recovery (after restart)
+  // -------------------------------------------------------------------------
+  const onSistaChansensRecovery = async (): Promise<void> => {
+    try {
+      const stuckGameIds = await findSistaChansensGames();
+      if (stuckGameIds.length === 0) return;
+
+      const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+
+      for (const gameId of stuckGameIds) {
+        try {
+          const game = await getGameById(gameId);
+          if (!game || game.state !== "active") continue;
+
+          const winner = checkWinCondition(game.ligan_score, game.aina_score);
+          if (!winner) continue;
+
+          // Compute remaining time from game.updated_at (set when score was written)
+          const updatedAt = new Date(game.updated_at).getTime();
+          const elapsed = Date.now() - updatedAt;
+          const remaining = TWO_HOURS_MS - elapsed;
+
+          if (remaining <= 0) {
+            // Expired: proceed to final reveal with no guess
+            console.log(
+              `[game-loop] Sista Chansen recovery: game ${gameId} expired (elapsed ${Math.round(elapsed / 60_000)}min) -- final reveal`,
+            );
+            await performFinalReveal(bot, game, game.group_chat_id, null, winner);
+          } else {
+            // Time remains: re-send DMs, set new timeout
+            console.log(
+              `[game-loop] Sista Chansen recovery: game ${gameId} has ${Math.round(remaining / 60_000)}min left -- re-sending DMs`,
+            );
+
+            const scState = await computeSistaChansenState(gameId, game);
+            if (!scState || scState.guessers.length === 0) {
+              await performFinalReveal(bot, game, game.group_chat_id, null, winner);
+              continue;
+            }
+
+            const { guessingSide, guessers, candidates } = scState;
+
+            // Notify group that Guzman is back
+            await queue.send(
+              game.group_chat_id,
+              "Guzman vaknade upp igen... Sista Chansen-klockan tickar fortfarande! ⏰",
+              { parse_mode: "HTML" },
+            );
+
+            // Re-send DMs with fresh buttons
+            await sendSistaChansenDMs(queue, gameId, guessingSide, guessers, candidates);
+
+            // Set timeout with remaining duration
+            setSistaChansenTimeout(bot, game, winner, remaining);
+          }
+        } catch (gameErr) {
+          console.error(
+            `[game-loop] Sista Chansen recovery failed for game ${gameId}:`,
+            gameErr,
+          );
+        }
+      }
+    } catch (err) {
+      console.error("[game-loop] onSistaChansensRecovery failed:", err);
+    }
+  };
+
   return {
     onMissionPost,
     onNominationReminder,
@@ -2373,5 +2438,6 @@ export function createScheduleHandlers(bot: Bot): GameLoopScheduleHandlers {
     onExecutionReminder,
     onExecutionDeadline,
     onResultReveal,
+    onSistaChansensRecovery,
   };
 }
