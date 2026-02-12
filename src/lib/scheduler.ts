@@ -1,6 +1,6 @@
 /**
  * Croner-based event scheduler for the game loop.
- * Fires 8 cron jobs on weekdays (Mon-Fri) in Europe/Stockholm timezone:
+ * Fires 8 cron jobs daily in Europe/Stockholm timezone:
  *   09:00 - Mission post
  *   11:00 - Nomination reminder (1h before deadline)
  *   12:00 - Nomination deadline
@@ -49,23 +49,23 @@ const jobs: Cron[] = [];
 // ---------------------------------------------------------------------------
 
 /**
- * Start all 11 cron jobs on the Mon-Fri schedule.
+ * Start all 11 cron jobs on the daily schedule.
  */
 export function startScheduler(handlers: ScheduleHandlers): void {
   jobs.push(
-    new Cron("0 9 * * 1-5", { timezone: TIMEZONE }, handlers.onMissionPost),
-    new Cron("0 11 * * 1-5", { timezone: TIMEZONE }, handlers.onNominationReminder),
-    new Cron("0 12 * * 1-5", { timezone: TIMEZONE }, handlers.onNominationDeadline),
-    new Cron("0 13 * * 1-5", { timezone: TIMEZONE }, handlers.onWhisperAfternoon),
-    new Cron("0 14 * * 1-5", { timezone: TIMEZONE }, handlers.onVotingReminder),
-    new Cron("0 14,20 * * 1-5", { timezone: TIMEZONE }, handlers.onGapFill),
-    new Cron("0 15 * * 1-5", { timezone: TIMEZONE }, handlers.onVotingDeadline),
-    new Cron("0 17 * * 1-5", { timezone: TIMEZONE }, handlers.onExecutionReminder),
-    new Cron("0 18 * * 1-5", { timezone: TIMEZONE }, handlers.onExecutionDeadline),
-    new Cron("0 19 * * 1-5", { timezone: TIMEZONE }, handlers.onWhisperEvening),
-    new Cron("0 21 * * 1-5", { timezone: TIMEZONE }, handlers.onResultReveal),
+    new Cron("0 9 * * *", { timezone: TIMEZONE }, handlers.onMissionPost),
+    new Cron("0 11 * * *", { timezone: TIMEZONE }, handlers.onNominationReminder),
+    new Cron("0 12 * * *", { timezone: TIMEZONE }, handlers.onNominationDeadline),
+    new Cron("0 13 * * *", { timezone: TIMEZONE }, handlers.onWhisperAfternoon),
+    new Cron("0 14 * * *", { timezone: TIMEZONE }, handlers.onVotingReminder),
+    new Cron("0 14,20 * * *", { timezone: TIMEZONE }, handlers.onGapFill),
+    new Cron("0 15 * * *", { timezone: TIMEZONE }, handlers.onVotingDeadline),
+    new Cron("0 17 * * *", { timezone: TIMEZONE }, handlers.onExecutionReminder),
+    new Cron("0 18 * * *", { timezone: TIMEZONE }, handlers.onExecutionDeadline),
+    new Cron("0 19 * * *", { timezone: TIMEZONE }, handlers.onWhisperEvening),
+    new Cron("0 21 * * *", { timezone: TIMEZONE }, handlers.onResultReveal),
   );
-  console.log("[scheduler] Started 11 cron jobs (Mon-Fri, Europe/Stockholm)");
+  console.log("[scheduler] Started 11 cron jobs (daily, Europe/Stockholm)");
 }
 
 /**
@@ -123,14 +123,6 @@ export async function recoverMissedEvents(
       now.toLocaleString("en-US", { timeZone: TIMEZONE }),
     );
     const currentHour = stockholmTime.getHours();
-    const dayOfWeek = stockholmTime.getDay(); // 0=Sun, 6=Sat
-
-    // Only recover on weekdays
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      console.log("[scheduler] Weekend -- skipping recovery");
-      return;
-    }
-
     // Determine expected phase for current time
     let expectedPhase: RoundPhase | null = null;
     for (const entry of PHASE_BY_HOUR) {
