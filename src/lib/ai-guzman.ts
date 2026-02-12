@@ -66,6 +66,8 @@ export async function generateMissionNarrative(
   roundNumber: number,
   gameContext: GuzmanContext,
   playerNames: string[],
+  groupDynamics: string = "",
+  groupMood: string = "active",
 ): Promise<string> {
   try {
     const client = getAIClient();
@@ -79,7 +81,7 @@ export async function generateMissionNarrative(
         { role: "system", content: buildGuzmanSystemPrompt() },
         {
           role: "user",
-          content: buildMissionPrompt(roundNumber, gameContext, playerNames),
+          content: buildMissionPrompt(roundNumber, gameContext, playerNames, groupDynamics, groupMood),
         },
       ],
       max_tokens: 800,

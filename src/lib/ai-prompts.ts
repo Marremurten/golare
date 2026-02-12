@@ -77,6 +77,8 @@ export function buildMissionPrompt(
   roundNumber: number,
   gameContext: GuzmanContext,
   playerNames: string[],
+  groupDynamics: string = "",
+  groupMood: string = "active",
 ): string {
   const previousRounds = gameContext.roundSummaries
     .map(
@@ -84,6 +86,28 @@ export function buildMissionPrompt(
         `Runda ${r.round}: ${r.missionTheme} -- ${r.outcome}. ${r.narrativeBeats}`,
     )
     .join("\n");
+
+  // Mood-to-theme guidance (soft, not deterministic)
+  let moodGuidance: string;
+  switch (groupMood) {
+    case "tense":
+      moodGuidance = "Gruppen är på kant -- låt uppdraget spegla misstro och förråd. Någon i teamet kanske inte är pålitlig.";
+      break;
+    case "calm":
+      moodGuidance = "Det är för lugnt -- skapa brådskligthet och fara. Gör stöten höginsats för att väcka gruppen.";
+      break;
+    case "active":
+    default:
+      moodGuidance = "Gruppen är aktiv -- gör stöten komplex med flera lager. Testa deras samarbete.";
+      break;
+  }
+
+  // Conditional dynamics section (only when non-empty)
+  const dynamicsSection = groupDynamics
+    ? `\nGRUPPDYNAMIK (intern data -- väv in naturligt, ALDRIG visa som etiketter):
+${groupDynamics}
+Väv in observationer om spelarna i uppdraget. Blanda namngivna utpekanden ('jag kollar på dig, bre') med vaga antydningar ('någon här beter sig skumt'). Guzman har märkt saker och kommenterar medan han beskriver stöten.\n`
+    : "";
 
   return `Skriv ett uppdragsmeddelande för Runda ${roundNumber}.
 
@@ -93,8 +117,18 @@ SPELKONTEXT:
 - Story-arc: ${gameContext.storyArc || "Ingen ännu -- detta är starten"}
 ${previousRounds ? `- Tidigare rundor:\n${previousRounds}` : "- Första rundan"}
 
+STÄMNING I GRUPPEN: ${groupMood} -- ${moodGuidance}
+${dynamicsSection}
 UPPGIFT:
 Beskriv en ny stöt/heist som Ligan ska genomföra. Gör det dramatiskt och specifikt -- ge stöten en plats, ett mål, och en känsla av fara. Nämn att Capo ska välja sitt team. Avsluta med spänning.
+
+GRUPPDYNAMIK-REGLER:
+- Väv in beteendeobservationer NATURLIGT i narrativet (inte som en separat sektion)
+- Blanda namngivna utpekanden med vaga antydningar
+- Använd ALDRIG etiketter som 'Ton:', 'Aktivitet:', 'Anomali:' -- översätt till Guzmans orten-skvaller
+- ALDRIG avslöja spelares roller
+- Om det inte finns tillräckligt med beteendedata, fokusera på uppdraget -- tvinga inte in gruppdynamik
+- 70% av meddelandet ska vara uppdraget. 30% max ska vara gruppdynamik.
 
 Håll det under 1500 tecken. Använd <b> och <i> för formatering.`;
 }
