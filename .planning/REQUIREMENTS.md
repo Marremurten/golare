@@ -30,14 +30,14 @@
 - [ ] **GROUP-01**: Gap-fill commentary adapts to group mood (active/quiet, aggressive/cautious) using behavioral context
 - [ ] **GROUP-02**: Guzman publicly calls out suspicious behavior (silence, aggression) via accusation system piggybacked on gap-fill schedule
 - [ ] **GROUP-03**: Accusation frequency controlled: max 1 per 4-hour window, never same player twice in a row
-- [ ] **GROUP-04**: Mission narratives include group dynamics section reflecting recent player behavior patterns
+- [x] **GROUP-04**: Mission narratives include group dynamics section reflecting recent player behavior patterns
 
 ### Constraints
 
-- [ ] **CONST-01**: Zero new npm dependencies — all capabilities use existing stack (grammY, Supabase, OpenAI)
-- [ ] **CONST-02**: Token budget increase capped at 2x baseline (~500 additional tokens per AI call via compressed summaries)
-- [ ] **CONST-03**: All behavioral data is internal to AI — never exposed as stats or indicators to players
-- [ ] **CONST-04**: All new AI paths have template/null fallbacks — game never blocks on OpenAI failure
+- [x] **CONST-01**: Zero new npm dependencies — all capabilities use existing stack (grammY, Supabase, OpenAI)
+- [x] **CONST-02**: Token budget increase capped at 2x baseline (~500 additional tokens per AI call via compressed summaries)
+- [x] **CONST-03**: All behavioral data is internal to AI — never exposed as stats or indicators to players
+- [x] **CONST-04**: All new AI paths have template/null fallbacks — game never blocks on OpenAI failure
 
 ## Out of Scope (v1.1)
 
@@ -69,11 +69,11 @@
 | GROUP-01 | Phase 4: Gap-Fill & Accusations | Complete |
 | GROUP-02 | Phase 4: Gap-Fill & Accusations | Complete |
 | GROUP-03 | Phase 4: Gap-Fill & Accusations | Complete |
-| GROUP-04 | Phase 5: Mission Adaptation | Pending |
-| CONST-01 | All Phases | Pending |
-| CONST-02 | All Phases | Pending |
-| CONST-03 | All Phases | Pending |
-| CONST-04 | All Phases | Pending |
+| GROUP-04 | Phase 5: Mission Adaptation | Complete |
+| CONST-01 | All Phases | Complete |
+| CONST-02 | All Phases | Complete |
+| CONST-03 | All Phases | Complete |
+| CONST-04 | All Phases | Complete |
 
 **Coverage:**
 - v1.1 requirements: 19 total

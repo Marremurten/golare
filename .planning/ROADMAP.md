@@ -51,15 +51,16 @@ Plans:
 - [x] 04-01-PLAN.md — Group mood computation, accusation target selection, prompt builders, and generateAccusation
 - [x] 04-02-PLAN.md — Accusation delivery, frequency tracking, and mood-adaptive gap-fill wiring in whisper-handler
 
-### Phase 5: Mission Adaptation
+### Phase 5: Mission Adaptation ✓
 
 **Goal**: Mission narratives include a group dynamics section that reflects recent player behavior patterns, making each mission post feel tailored to the current game atmosphere.
 **Depends on**: Phase 2
 **Requirements**: GROUP-04
 **Plans:** 1 plan
+**Completed:** 2026-02-12
 
 Plans:
-- [ ] 05-01-PLAN.md — Behavior-aware mission prompt, AI generator wiring, and fresh behavioral data in onMissionPost
+- [x] 05-01-PLAN.md — Behavior-aware mission prompt, AI generator wiring, and fresh behavioral data in onMissionPost
 
 ---
 
