@@ -45,17 +45,15 @@ The social deduction experience — the paranoia, accusations, and bluffing betw
 - ✓ Scheduled events via Croner — v1
 - ✓ Role reveal at game end — v1
 
+- ✓ Track player messages in group chat (last ~10 per player, stored in DB) — v1.1
+- ✓ Analyze message frequency and tone per player (internal stats for AI) — v1.1
+- ✓ Whispers reference actual player messages (paraphrased, oblique references only) — v1.1
+- ✓ Mission narratives adapt to group mood (active/quiet, aggressive/cautious) — v1.1
+- ✓ Guzman accusations: calls out suspicious silence or aggressive behavior in group — v1.1
+
 ### Active
 
-**Current Milestone: v1.1 — AI Behavioral Awareness**
-
-**Goal:** Make Guzman reactive to real player behavior — tracking what players write in group chat and using that data to personalize whispers, adapt narratives, and call out suspicious behavior.
-
-- [ ] Track player messages in group chat (last ~10 per player, stored in DB)
-- [ ] Analyze message frequency and tone per player (internal stats for AI)
-- [ ] Whispers reference actual player messages (twisted, out of context)
-- [ ] Mission narratives adapt to group mood (active/quiet, aggressive/cautious)
-- [ ] Guzman accusations: calls out suspicious silence or aggressive behavior in group
+(No active milestone — run `/gsd:new-milestone` to plan next)
 
 ### Out of Scope
 
@@ -71,10 +69,10 @@ The social deduction experience — the paranoia, accusations, and bluffing betw
 
 ## Context
 
-**Shipped v1 MVP** with 8,218 LOC TypeScript across 84 files in 2 days.
+**Shipped v1.1 AI Behavioral Awareness** with 9,578 LOC TypeScript.
+v1.1 added behavioral awareness: message capture, tone analysis, behavior-aware whispers, public accusations, and mood-adaptive missions.
 Tech stack: Node.js, grammY, Supabase, OpenAI (gpt-4o-mini / gpt-4.1-nano), Croner.
-All 36 requirements shipped. Audit passed: 76/76 observable truths verified.
-Game is ready for human playtesting.
+All 36 v1 + 19 v1.1 requirements shipped (55 total). Both audits passed.
 
 **Theme & Tone:**
 Miljö: Betongen, förorten, "Byn". Mörkt, regnigt och stressigt. Stil: Snabba Cash möter Top Boy. Språkbruk: Mycket slang (shuno, bre, aina, para, beckna, guss). Aggressivt men med glimten i ögat.
@@ -137,6 +135,15 @@ Ligans paranoida ledare. Litar inte på någon, stressad över polisen, hotar st
 | Tiered AI models (mini/nano) | Cost optimization without quality loss | ✓ Good |
 | In-memory Maps for transient state | Acceptable v1 trade-off for Sista Chansen/whispers | ⚠️ Revisit |
 | Global botRef for scheduler | Scheduler needs bot instance; acceptable bridge pattern | ⚠️ Revisit |
+| Ring buffer via PostgreSQL trigger | DB-level pruning, not app code — keeps data bounded | ✓ Good |
+| Heuristic Swedish tone classification | Zero ML deps, CONST-01 compliant, works for orten-slang | ✓ Good |
+| Compressed summaries (not raw messages) | 2x token budget vs 5x with raw messages | ✓ Good |
+| Accusations piggyback on gap-fill | Reuses scheduler, no new cron jobs | ✓ Good |
+| playerNotes as integration seam | Already in GuzmanContext, zero migration needed | ✓ Good |
+| Round-based whisper escalation | Vague→specific→pointed solves thin-data problem | ✓ Good |
+| FORSAKRAN as 4th whisper strategy | Trust as manipulation creates information asymmetry | ✓ Good |
+| Null fallback for accusations | Never fabricates on AI failure (CONST-04 spirit) | ✓ Good |
+| Max 2 accusations per round (flat) | User decision override of spec's "1 per 4-hour window" | ✓ Good |
 
 ---
-*Last updated: 2026-02-11 after v1.1 milestone start*
+*Last updated: 2026-02-12 after v1.1 milestone complete*
