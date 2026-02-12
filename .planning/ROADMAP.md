@@ -56,9 +56,10 @@ Plans:
 **Goal**: Mission narratives include a group dynamics section that reflects recent player behavior patterns, making each mission post feel tailored to the current game atmosphere.
 **Depends on**: Phase 2
 **Requirements**: GROUP-04
+**Plans:** 1 plan
 
 Plans:
-- (not yet planned)
+- [ ] 05-01-PLAN.md — Behavior-aware mission prompt, AI generator wiring, and fresh behavioral data in onMissionPost
 
 ---
 
