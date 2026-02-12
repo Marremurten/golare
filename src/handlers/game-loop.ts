@@ -65,6 +65,7 @@ import {
 } from "../lib/ai-guzman.js";
 import { getMessageQueue } from "../queue/message-queue.js";
 import { triggerEventWhisper } from "./whisper-handler.js";
+import { analyzeBehavior, computeGroupMood } from "../lib/behavioral-analysis.js";
 import { config } from "../config.js";
 import { invalidateGameCache } from "../lib/message-capture.js";
 import type { ScheduleHandlers } from "../lib/scheduler.js";
@@ -1539,10 +1540,39 @@ export function createScheduleHandlers(bot: Bot): GameLoopScheduleHandlers {
             const missionPlayers = await getGamePlayersOrderedWithInfo(game.id);
             const missionPlayerNames = missionPlayers.map((p) => displayName(p.players));
             const missionGuzmanCtx = await getGuzmanContext(game.id);
+
+            // Fresh behavioral data for mission dynamics (non-critical, CONST-04)
+            let groupDynamics = "";
+            let groupMood = "active";
+            try {
+              const { playerNotes } = await analyzeBehavior(game.id);
+              groupMood = computeGroupMood(playerNotes);
+
+              // Build compressed dynamics string for the prompt
+              const dynamicsEntries: string[] = [];
+              for (const [name, note] of Object.entries(playerNotes)) {
+                if (note === "inaktiv") continue;
+                dynamicsEntries.push(`${name}: ${note}`);
+              }
+              groupDynamics = dynamicsEntries.join("\n");
+              // Hard-cap at 500 chars to respect CONST-02 token budget
+              if (groupDynamics.length > 500) {
+                groupDynamics = groupDynamics.slice(0, 497) + "...";
+              }
+            } catch (err) {
+              console.warn(
+                "[game-loop] Fresh behavioral analysis for mission failed, using stale data:",
+                err instanceof Error ? err.message : err,
+              );
+              // Fall back to empty dynamics (CONST-04) -- mission still generates fine
+            }
+
             missionText = await generateMissionNarrative(
               round.round_number,
               missionGuzmanCtx,
               missionPlayerNames,
+              groupDynamics,
+              groupMood,
             );
           } catch (aiErr) {
             console.warn("[game-loop] AI mission narrative failed, using template:", aiErr);
